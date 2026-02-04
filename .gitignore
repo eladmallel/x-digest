@@ -1,0 +1,18 @@
+# Virtual environment
+.venv/
+venv/
+__pycache__/
+
+# Logs
+*.log
+*.log.old
+
+# Local data
+data/
+
+# Secrets (should never be committed)
+*_api_key
+*.secret
+
+# Local config (use example as template)
+config/x-digest-config.json

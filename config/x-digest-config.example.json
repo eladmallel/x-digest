@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "defaults": {
+    "recipient": "$RECIPIENT",
+    "hours_lookback": 12,
+    "external_llm": {
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "api_key_path": "~/.config/x-digest/openai_api_key"
+    },
+    "whatsapp_gateway": "http://localhost:3420/api/message/send",
+    "token_limits": {
+      "max_input_tokens": 100000,
+      "max_output_tokens": 4000,
+      "warn_at_percent": 80
+    },
+    "pre_summarization": {
+      "enabled": true,
+      "long_tweet_chars": 500,
+      "long_quote_chars": 300,
+      "long_combined_chars": 600,
+      "thread_min_tweets": 2,
+      "max_summary_tokens": 300
+    }
+  },
+  "lists": {
+    "example-list": {
+      "id": "YOUR_LIST_ID",
+      "display_name": "Example List",
+      "emoji": "📋",
+      "sections": ["top", "highlights"],
+      "enabled": true
+    }
+  },
+  "schedules": [
+    {
+      "name": "morning-example",
+      "list": "example-list",
+      "cron": "0 12 * * *",
+      "description": "7am EST"
+    }
+  ],
+  "retry": {
+    "max_attempts": 3,
+    "initial_delay_seconds": 2,
+    "backoff_multiplier": 2,
+    "max_delay_seconds": 30
+  },
+  "whatsapp": {
+    "max_length": 4000,
+    "split_if_longer": true
+  }
+}
