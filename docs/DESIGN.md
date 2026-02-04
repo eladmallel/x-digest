@@ -31,9 +31,55 @@ The script uses the `bird` CLI to pull recent tweets from a Twitter list:
 bird list-timeline <list-id> --hours 12 --json
 ```
 
-This returns raw JSON with tweet text, author info, timestamps, engagement metrics, quotes, and thread relationships.
+This returns a JSON array of tweet objects:
 
-> **TODO:** Document the exact bird CLI output schema we rely on.
+```typescript
+interface Tweet {
+  // Core fields (always present)
+  id: string;                    // Tweet ID, e.g. "2019123973615939775"
+  text: string;                  // Tweet content (may include t.co URLs)
+  createdAt: string;             // "Wed Feb 04 19:00:43 +0000 2026"
+  conversationId: string;        // Thread root ID (same as id if standalone)
+  author: {
+    username: string;            // Handle without @, e.g. "simonw"
+    name: string;                // Display name, e.g. "Simon Willison"
+  };
+  authorId: string;              // Numeric author ID
+
+  // Engagement metrics
+  replyCount: number;
+  retweetCount: number;
+  likeCount: number;
+
+  // Optional fields
+  media?: Media[];               // Attached photos/videos
+  quotedTweet?: Tweet;           // Nested tweet if quote-tweeting
+  inReplyToStatusId?: string;    // Parent tweet ID if this is a reply
+}
+
+interface Media {
+  type: "photo" | "video";
+  url: string;                   // Full-size URL
+  width: number;
+  height: number;
+  previewUrl: string;            // Thumbnail URL
+  videoUrl?: string;             // For videos only
+  durationMs?: number;           // For videos only
+}
+```
+
+**Identifying content types:**
+
+| Type | Detection |
+|------|-----------|
+| Standalone tweet | `conversationId === id` and no `inReplyToStatusId` |
+| Quote tweet | Has `quotedTweet` field |
+| Reply | Has `inReplyToStatusId` field |
+| Thread tweet | `inReplyToStatusId` exists AND `conversationId` matches another tweet's |
+| Retweet | `text` starts with `"RT @"` |
+| Has media | `media` array is present and non-empty |
+
+**Thread reconstruction:** Tweets in the same thread share `conversationId`. Sort by `createdAt` and link via `inReplyToStatusId` to reconstruct order.
 
 ### Step 2: Pre-Summarization (Smart Content Handling)
 
@@ -79,9 +125,49 @@ The combined payload (short tweets as-is, long content summarized) goes to the d
 3. Writes concise summaries with author attribution
 4. Includes links to original tweets
 
-> **TODO:** Define the default digest system prompt and how list-specific prompts override it.
+#### Default Digest Prompt
 
-> **TODO:** How does the LLM decide what's "top" vs "highlights" vs other sections? Is it purely LLM judgment or are there engagement thresholds?
+The digest LLM receives this system prompt (can be overridden per-list):
+
+```
+You are a Twitter digest curator helping extract signal from noise.
+
+YOUR GOAL: Surface the most valuable content so the reader doesn't have to scroll through the full feed. Prioritize by:
+1. ENGAGEMENT — High likes/replies/retweets indicate resonance
+2. PATTERNS — If multiple people are discussing the same topic, that's a signal
+3. NOTABLE AUTHORS — Known experts or primary sources over commentators
+
+INPUT: Tweets from a curated list, possibly with pre-summarized threads/long content.
+
+OUTPUT STRUCTURE:
+- Start with 🔥 *Top* (3-5 items) — the most important content
+- Add topical sections if a theme dominates (e.g., "🚀 *Claude Cowork Launch*" if 5+ tweets discuss it)
+- End with 💡 *Worth Noting* (2-4 items) — interesting but not top-tier
+- Skip any section with no content; don't force structure
+
+FORMATTING:
+- *bold* for emphasis (WhatsApp-compatible)
+- 1-2 sentences per item, max
+- Format: Summary — @author https://x.com/{username}/status/{id}
+- Group related content (quote + original, reactions to same news)
+- For non-English: note language, provide English summary
+- Skip pure retweets unless they add context
+
+PATTERN RECOGNITION:
+If you notice a theme (product launch, drama, breaking news), create a dedicated section for it. Example: if 6 tweets discuss "Mistral's new speech model", group them under "🎙️ *Mistral Voxtral Launch*" rather than scattering across sections.
+```
+
+#### Prompt Override Hierarchy
+
+When generating a digest, prompts are selected in order:
+1. **List-specific prompt** (`lists.<name>.prompt`) — Full override if present
+2. **Default prompt** (`defaults.prompt` in config) — User customization
+3. **Built-in prompt** — The hardcoded fallback above
+
+Common list-specific customizations:
+- Different section names (e.g., 💰 *Deals* for investing list)
+- Language handling (e.g., Hebrew-first for Israeli tech list)
+- Topic focus (e.g., "prioritize AI safety content")
 
 ### Step 4: Delivery
 
@@ -293,8 +379,46 @@ python3 scripts/x-digest.py --onboard-list <list-id> --name <short-name>
 | Main script | `scripts/x-digest.py` | Orchestrates the entire pipeline |
 | Config | `config/x-digest-config.json` | Lists, schedules, tuning parameters |
 | Secrets | `.env` | API keys, recipient number |
-| Status file | `data/x-digest-status.json` | Run metadata for monitoring |
+| Status file | `data/status.json` | Run metadata for monitoring |
 | Logs | `data/x-digest.log` | Detailed logs (rotated, max 5MB) |
+| Digest archive | `data/digests/` | Historical data for analysis |
+
+### Data Storage Architecture
+
+All pipeline data is saved for future analysis (weekly/monthly pattern recognition, historical queries).
+
+```
+data/
+├── digests/
+│   └── 2026/
+│       └── 02/
+│           └── week-05/
+│               └── 2026-02-04/
+│                   ├── ai-dev/
+│                   │   ├── raw-tweets.json      # Full bird CLI output
+│                   │   ├── pre-summaries.json   # Individual long-content summaries (if any)
+│                   │   ├── prompt.md            # Exact prompt sent to digest LLM
+│                   │   ├── digest.md            # LLM's output (the digest)
+│                   │   └── meta.json            # Run metadata
+│                   └── investing/
+│                       └── ...
+├── status.json                                  # Current run status (for monitoring)
+└── x-digest.log                                 # Rotating log file
+```
+
+**File contents:**
+
+| File | Contents |
+|------|----------|
+| `raw-tweets.json` | Unmodified bird CLI output |
+| `pre-summaries.json` | `[{tweet_id, original_length, summary}, ...]` |
+| `prompt.md` | System prompt + user message sent to LLM |
+| `digest.md` | Raw LLM response (the digest text) |
+| `meta.json` | `{timestamp, list, tweets_count, tokens_in, tokens_out, model, duration_ms}` |
+
+**Week numbering:** ISO week (week-01 through week-53)
+
+**Retention:** No automatic deletion. Disk is cheap; historical data is valuable.
 
 ### External Dependencies
 
@@ -434,8 +558,6 @@ Adjust thresholds in config:
 }
 ```
 
-> **TODO:** Should we add a `skip_pre_summarization_for_lists` option for lists where content is typically short?
-
 ### Token Management
 
 ```json
@@ -500,8 +622,6 @@ Adjust thresholds in config:
 }
 ```
 
-> **TODO:** Should we track per-list stats separately? Current schema only shows last run across all lists.
-
 ### Monitoring Alerts
 
 When OpenClaw detects issues, it sends alerts like:
@@ -521,24 +641,34 @@ Run: source ~/.config/bird/env && bird auth login
 
 ---
 
-## Open Questions (TODOs)
+## Future Features
 
-These items need resolution before implementation:
+> 📌 *Documented for future versions — not in current scope*
 
-1. **Digest prompt**: What's the default system prompt for the main digest LLM call? How does it structure output?
+### Weekly/Monthly Meta-Summaries
 
-2. **Section logic**: How does the LLM decide what goes in "top" vs "highlights"? Pure judgment or engagement-based thresholds?
+Pattern recognition across daily digests:
+- What topics trended over the week/month?
+- Which authors appeared most frequently?
+- What links were shared multiple times?
+- Emerging themes that weren't obvious day-to-day
 
-3. **Thread detection**: How does bird CLI / our script identify that tweets are part of a thread? reply_to chain?
-
-4. **bird output schema**: Document the exact JSON structure we parse from bird CLI.
-
-5. **Per-list status tracking**: Should status.json track each list separately for better monitoring?
-
-6. **Output format**: What does the final WhatsApp digest actually look like? Show an example.
-
-7. **Handling Hebrew/RTL**: Any special handling needed for Hebrew tweets in digests?
+Implementation will analyze the saved `digest.md` and `raw-tweets.json` files in `data/digests/`. The hierarchical folder structure (year/month/week/day) enables efficient date-range queries.
 
 ---
 
-*Design doc v2.0 — Restructured for clarity*
+## Open Questions (TODOs)
+
+Remaining items to resolve:
+
+1. **Per-list status tracking**: Should status.json track each list separately for better monitoring?
+
+2. **Output format**: What does the final WhatsApp digest actually look like? Show an example.
+
+3. **Handling Hebrew/RTL**: Any special handling needed for Hebrew tweets in digests?
+
+4. **Skip pre-summarization option**: Should we add `skip_pre_summarization` for lists with typically short content?
+
+---
+
+*Design doc v2.1 — Added digest prompt, data storage architecture, future features*
