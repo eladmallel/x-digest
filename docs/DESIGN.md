@@ -211,25 +211,36 @@ We use a multimodal LLM (Gemini) that can see images. Images are included direct
 
 **Budget:** Max ~15 images per digest (to leave room for text + response)
 
+**Per-tweet cap:** Max 3 images per tweet (ensures variety across tweets)
+
 ```python
 TOKENS_PER_IMAGE = 1900
 MAX_IMAGE_TOKENS = 30000
 MAX_IMAGES = MAX_IMAGE_TOKENS // TOKENS_PER_IMAGE  # ~15
+MAX_IMAGES_PER_TWEET = 3
 
 def prioritize_images(tweets: list[Tweet]) -> list[str]:
-    """Return URLs of images to include, prioritized by engagement."""
-    all_images = []
+    """Return URLs of images to include, prioritized by engagement with per-tweet cap."""
+    # First, collect up to MAX_IMAGES_PER_TWEET from each tweet
+    tweet_images = []
     for tweet in tweets:
-        for img in (tweet.media or []):
-            if img.type == "photo":
-                all_images.append({
-                    "url": img.url,
-                    "engagement": tweet.likeCount + tweet.retweetCount * 2
-                })
+        photos = [img for img in (tweet.media or []) if img.type == "photo"]
+        engagement = tweet.likeCount + tweet.retweetCount * 2
+        
+        # Cap per tweet
+        for img in photos[:MAX_IMAGES_PER_TWEET]:
+            tweet_images.append({
+                "url": img.url,
+                "tweet_id": tweet.id,
+                "engagement": engagement
+            })
     
-    all_images.sort(key=lambda x: x["engagement"], reverse=True)
-    return [img["url"] for img in all_images[:MAX_IMAGES]]
+    # Sort by engagement, take top MAX_IMAGES
+    tweet_images.sort(key=lambda x: x["engagement"], reverse=True)
+    return [img["url"] for img in tweet_images[:MAX_IMAGES]]
 ```
+
+This ensures no single tweet dominates the image budget, even if it has 10 images with high engagement.
 
 **Overflow images (beyond top 15):**
 - Pre-describe with a quick vision call
@@ -549,6 +560,44 @@ def split_digest(digest: str) -> list[str]:
 
 This ensures items are never cut mid-sentence, and related content stays together.
 
+#### Partial Delivery Failure
+
+If a split digest fails to send some messages:
+
+```python
+MAX_SEND_RETRIES = 3
+
+def send_digest_parts(parts: list[str], recipient: str) -> bool:
+    """Send all parts, retry failures, abort if any part ultimately fails."""
+    failed_parts = []
+    
+    for i, part in enumerate(parts):
+        success = False
+        for attempt in range(MAX_SEND_RETRIES):
+            try:
+                send_whatsapp(recipient, part)
+                success = True
+                break
+            except SendError as e:
+                log.warning(f"Part {i+1}/{len(parts)} failed (attempt {attempt+1}): {e}")
+                time.sleep(2 ** attempt)  # Exponential backoff
+        
+        if not success:
+            failed_parts.append(i)
+    
+    if failed_parts:
+        # Any part failed after retries → whole digest failed
+        log.error(f"Digest delivery failed: parts {failed_parts} could not be sent")
+        return False
+    
+    return True
+```
+
+**Behavior:**
+- Retry each failed message up to 3 times with exponential backoff
+- If ANY part fails after all retries → mark entire digest as failed
+- Failed digest will be retried on next scheduled run (tweets preserved via `last_success` not updating)
+
 ---
 
 ## Quick Start
@@ -579,12 +628,64 @@ EOF
 source ~/.config/bird/env
 ```
 
-**To get cookies from your browser:**
-1. Log into Twitter/X in your browser
-2. Open DevTools → Application → Cookies → x.com
-3. Copy `auth_token` and `ct0` values
+#### Cookie Refresh Procedure (Step-by-Step)
 
-Cookies typically expire every 1-2 weeks. When bird starts failing with auth errors, refresh the cookies.
+Cookies typically expire every 1-2 weeks. When you see `BIRD_AUTH_FAILED` errors:
+
+**1. Get fresh cookies from your browser:**
+
+```
+1. Open Chrome/Firefox and go to x.com
+2. Log in if not already logged in
+3. Open DevTools (F12 or Cmd+Option+I)
+4. Go to: Application tab → Storage → Cookies → https://x.com
+5. Find and copy these two values:
+   - auth_token (long alphanumeric string)
+   - ct0 (long alphanumeric string)
+```
+
+**2. Update the env file on your server:**
+
+```bash
+# SSH into your server
+ssh your-server
+
+# Edit the env file
+nano ~/.config/bird/env
+
+# Replace the old values:
+export TWITTER_AUTH_TOKEN=paste_new_auth_token_here
+export TWITTER_CT0=paste_new_ct0_here
+
+# Save and exit (Ctrl+X, Y, Enter)
+```
+
+**3. Verify the new cookies work:**
+
+```bash
+source ~/.config/bird/env
+bird whoami
+# Should print your Twitter username
+```
+
+**4. Test tweet fetching:**
+
+```bash
+bird list-timeline <your-list-id> -n 5 --json
+# Should return JSON array of tweets
+```
+
+**Pro tip:** Set a calendar reminder for every 10 days to proactively refresh cookies before they expire.
+
+### Dependencies
+
+**requirements.txt:**
+```
+requests>=2.31.0,<3
+python-dotenv>=1.0.0,<2
+```
+
+Pin to major versions for stability while allowing security patches.
 
 ### Installation
 
@@ -596,7 +697,7 @@ cd x-digest
 # Set up Python environment
 uv venv .venv
 source .venv/bin/activate
-uv pip install requests python-dotenv
+uv pip install -r requirements.txt
 
 # Configure secrets
 cp .env.example .env
@@ -643,6 +744,30 @@ BIRD_ENV_PATH=~/.config/bird/env
 ```
 
 ### Config File (`config/x-digest-config.json`)
+
+#### Version Compatibility
+
+The config file includes a `version` field. If the script expects a different version:
+
+```python
+EXPECTED_CONFIG_VERSION = 1
+
+def load_config():
+    config = json.load(open("config/x-digest-config.json"))
+    
+    if config.get("version") != EXPECTED_CONFIG_VERSION:
+        raise ConfigError(
+            f"Config version mismatch. Expected {EXPECTED_CONFIG_VERSION}, "
+            f"got {config.get('version')}. "
+            f"See CHANGELOG.md for migration instructions."
+        )
+    
+    return config
+```
+
+**No auto-migration** — if the config version doesn't match, the script fails with clear instructions. This keeps the codebase simple and avoids silent data corruption.
+
+#### Schema
 
 ```json
 {
@@ -786,6 +911,31 @@ python3 scripts/x-digest.py --list <list-name> --force
 | Logs | `data/x-digest.log` | Detailed logs (rotated, max 5MB) |
 | Digest archive | `data/digests/` | Historical data for analysis |
 
+### Concurrency
+
+Multiple lists can run in parallel (e.g., `ai-dev` and `investing` scheduled at the same time). Each list has its own status entry, so there's no conflict in tracking.
+
+**File locking on status.json:**
+
+```python
+import fcntl
+
+def update_status(list_name: str, **kwargs):
+    """Update status with file locking to prevent race conditions."""
+    with open("data/status.json", "r+") as f:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX)  # Exclusive lock
+        try:
+            status = json.load(f)
+            status["lists"][list_name].update(kwargs)
+            f.seek(0)
+            f.truncate()
+            json.dump(status, f, indent=2)
+        finally:
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+```
+
+This prevents corruption if two digests finish at the exact same moment.
+
 ### Data Storage Architecture
 
 All pipeline data is saved for future analysis (weekly/monthly pattern recognition, historical queries).
@@ -817,7 +967,54 @@ data/
 | `pre-summaries.json` | `[{tweet_id, original_length, summary}, ...]` |
 | `prompt.md` | System prompt + user message sent to LLM |
 | `digest.md` | Raw LLM response (the digest text) |
-| `meta.json` | `{timestamp, list, tweets_count, tokens_in, tokens_out, model, duration_ms}` |
+| `meta.json` | Run metadata including metrics (see schema below) |
+
+**meta.json schema:**
+
+```json
+{
+  "timestamp": "2026-02-04T12:00:00Z",
+  "list": "ai-dev",
+  "success": true,
+  
+  "tweets": {
+    "fetched": 47,
+    "pre_summarized": 3,
+    "with_images": 12
+  },
+  
+  "images": {
+    "included": 8,
+    "overflow_described": 4
+  },
+  
+  "tokens": {
+    "pre_summary_in": 4200,
+    "pre_summary_out": 890,
+    "digest_in": 45230,
+    "digest_out": 1847,
+    "total_in": 49430,
+    "total_out": 2737
+  },
+  
+  "cost": {
+    "estimated_usd": 0.0047,
+    "model": "gemini-2.0-flash",
+    "pricing_per_1m_in": 0.075,
+    "pricing_per_1m_out": 0.30
+  },
+  
+  "timing": {
+    "fetch_ms": 1234,
+    "pre_summary_ms": 2456,
+    "digest_ms": 3890,
+    "delivery_ms": 567,
+    "total_ms": 8147
+  }
+}
+```
+
+This enables monitoring of costs over time and debugging slow runs.
 
 **Week numbering:** ISO week (week-01 through week-53)
 
@@ -831,6 +1028,74 @@ data/
 | Gemini API | Multimodal LLM for summarization + digest | API key in `.env` |
 | OpenClaw gateway | WhatsApp message delivery | Local HTTP API |
 
+#### WhatsApp Gateway API Contract
+
+The script sends messages via the OpenClaw gateway's HTTP API:
+
+**Endpoint:** `POST /api/message/send`
+
+**Request:**
+```json
+{
+  "channel": "whatsapp",
+  "to": "+1234567890",
+  "message": "Your digest content here..."
+}
+```
+
+**Response (success):**
+```json
+{
+  "success": true,
+  "messageId": "3A1234567890ABCDEF"
+}
+```
+
+**Response (failure):**
+```json
+{
+  "success": false,
+  "error": "RECIPIENT_NOT_FOUND"
+}
+```
+
+**Error codes:**
+
+| Code | Meaning | Retry? |
+|------|---------|--------|
+| `RECIPIENT_NOT_FOUND` | Phone number not on WhatsApp | No |
+| `RATE_LIMITED` | Too many messages sent | Yes (with backoff) |
+| `GATEWAY_UNAVAILABLE` | Gateway service down | Yes |
+| `MESSAGE_TOO_LONG` | Exceeded 4096 char limit | No (split first) |
+| `AUTH_FAILED` | WhatsApp session expired | No (manual relink) |
+
+**Python helper:**
+
+```python
+import requests
+
+GATEWAY_URL = os.getenv("WHATSAPP_GATEWAY", "http://localhost:3420")
+
+def send_whatsapp(recipient: str, message: str) -> str:
+    """Send WhatsApp message, return message ID or raise SendError."""
+    response = requests.post(
+        f"{GATEWAY_URL}/api/message/send",
+        json={
+            "channel": "whatsapp",
+            "to": recipient,
+            "message": message
+        },
+        timeout=10
+    )
+    
+    data = response.json()
+    
+    if not data.get("success"):
+        raise SendError(data.get("error", "UNKNOWN"))
+    
+    return data["messageId"]
+```
+
 **Cookie lifetime:** Twitter cookies typically last 1-2 weeks before requiring refresh. The monitoring job detects `BIRD_AUTH_FAILED` errors and alerts with refresh instructions. No proactive expiry detection — we handle it reactively when it fails.
 
 ### Scheduling
@@ -843,6 +1108,31 @@ python3 scripts/x-digest.py --generate-crontab | sudo tee /etc/cron.d/x-digest
 ```
 
 **Never edit the crontab manually** — always regenerate from config to keep them in sync.
+
+#### Auto-Detection of Stale Crontab
+
+On every script run, check if config is newer than the generated crontab:
+
+```python
+def check_crontab_freshness():
+    """Warn if crontab may be out of sync with config."""
+    config_mtime = os.path.getmtime("config/x-digest-config.json")
+    crontab_path = "/etc/cron.d/x-digest"
+    
+    if not os.path.exists(crontab_path):
+        log.warning("Crontab not found. Run: --generate-crontab")
+        return
+    
+    crontab_mtime = os.path.getmtime(crontab_path)
+    
+    if config_mtime > crontab_mtime:
+        log.warning(
+            "Config modified after crontab generation. "
+            "Schedules may be out of sync. Run: --generate-crontab"
+        )
+```
+
+This runs at script start and logs a warning — it doesn't auto-regenerate (which would require root).
 
 **Timezone handling:** Cron runs in UTC (server time). Display times in digest headers (e.g., "7:00 AM – 7:00 PM EST") are converted from UTC at format time using Python's `zoneinfo`. The target timezone is configured per-list or falls back to a global default:
 
@@ -1055,6 +1345,42 @@ The script checks `last_run` before executing. If a run completed within the ide
 - ❌ Config file read errors (fatal)
 - ❌ Status file write errors (fatal)
 
+### Graceful Degradation
+
+When critical dependencies fail after all retries:
+
+| Failure | Behavior |
+|---------|----------|
+| bird CLI fails | Skip digest, alert user, `last_success` unchanged → next run catches up |
+| Gemini API fails | Skip digest, alert user, `last_success` unchanged → next run catches up |
+| WhatsApp fails | Mark digest failed, `last_success` unchanged → next run retries |
+
+**Key principle:** Never update `last_success` unless the digest was fully delivered. This ensures no tweets are lost — the next run's time window will include everything since the last successful delivery.
+
+```python
+def run_digest(list_name: str):
+    try:
+        tweets = fetch_tweets(list_name)  # May raise
+        digest = generate_digest(tweets)   # May raise
+        success = send_digest(digest)      # Returns bool
+        
+        if success:
+            update_status(list_name, last_success=now(), error_code=None)
+        else:
+            update_status(list_name, error_code="WHATSAPP_SEND_FAILED")
+            send_alert(f"Digest delivery failed for {list_name}")
+            
+    except BirdError as e:
+        update_status(list_name, error_code="BIRD_" + e.code)
+        send_alert(f"Tweet fetch failed for {list_name}: {e.code}")
+        
+    except LLMError as e:
+        update_status(list_name, error_code="LLM_" + e.code)
+        send_alert(f"LLM failed for {list_name}: {e.code}")
+```
+
+**No fallback to raw format** — if the LLM is down, we skip entirely rather than sending a degraded experience. The next scheduled run will catch up.
+
 **Pre-summarization failures:** Each pre-summarization is retried up to `max_attempts` (default 3) before giving up. If all retries fail for a tweet, that tweet is included unsummarized with a note in the payload: "[summary failed — original text]". The digest continues. Only if >50% of pre-summarizations fail completely does the whole run fail.
 
 ### Timeouts
@@ -1064,6 +1390,20 @@ The script checks `last_run` before executing. If a run completed within the ide
 | bird CLI | 30 seconds |
 | LLM API | 60 seconds |
 | WhatsApp send | 10 seconds |
+
+### Status File vs Meta File
+
+Two files track run information with different purposes:
+
+| File | Purpose | Mutability | Scope |
+|------|---------|------------|-------|
+| `data/status.json` | Current state for monitoring | Mutable (overwritten) | All lists, latest only |
+| `data/digests/.../meta.json` | Historical record per run | Immutable (archived) | One list, one run |
+
+**status.json** answers: "What's the current health of each list?"  
+**meta.json** answers: "What happened in this specific run?"
+
+Monitoring reads `status.json`. Historical analysis reads `meta.json` files.
 
 ### Status File Schema
 
@@ -1109,6 +1449,196 @@ Consecutive Failures: 3
 Action: Refresh Twitter cookies
 Run: source ~/.config/bird/env && bird auth login
 ```
+
+---
+
+---
+
+## Implementation Roadmap
+
+Development follows small, testable milestones. Each milestone must pass its tests before proceeding.
+
+### Milestone 1: Tweet Fetching
+
+**Goal:** Fetch tweets from a Twitter list and save raw JSON.
+
+**Implementation:**
+- [ ] `fetch_tweets(list_id, since)` function
+- [ ] bird CLI integration with cookie env sourcing
+- [ ] Save raw JSON to `data/digests/.../raw-tweets.json`
+- [ ] Error handling for auth/rate-limit/network failures
+
+**Tests:**
+- [ ] Mock bird CLI output, verify JSON parsing
+- [ ] Test time window calculation (since last success)
+- [ ] Test error code mapping (auth failure → `BIRD_AUTH_FAILED`)
+- [ ] Test with sample fixtures: empty list, single tweet, 50 tweets
+
+**Acceptance:** Can run `--list ai-dev --preview` and see fetched tweet count + sample.
+
+---
+
+### Milestone 2: Content Classification
+
+**Goal:** Classify tweets (standalone, thread, quote, retweet) and reconstruct threads.
+
+**Implementation:**
+- [ ] `classify_tweet(tweet)` → type enum
+- [ ] `reconstruct_threads(tweets)` → grouped by conversation
+- [ ] `dedupe_quotes(tweets)` → remove quoted tweets that appear standalone
+- [ ] Handle partial threads gracefully
+
+**Tests:**
+- [ ] Fixture: standalone tweet → classified correctly
+- [ ] Fixture: 5-tweet thread → reconstructed in order
+- [ ] Fixture: quote + quoted both in batch → quoted removed
+- [ ] Fixture: partial thread (missing root) → handled with note
+
+**Acceptance:** Can run `--preview` and see correct thread grouping in output.
+
+---
+
+### Milestone 3: Pre-Summarization
+
+**Goal:** Summarize long tweets/threads before digest generation.
+
+**Implementation:**
+- [ ] `should_presummarize(tweet)` → bool (length/thread checks)
+- [ ] `presummarize(content)` → Gemini API call
+- [ ] Retry logic with exponential backoff
+- [ ] Save pre-summaries to `pre-summaries.json`
+- [ ] Graceful failure (use original if summary fails)
+
+**Tests:**
+- [ ] Short tweet → not pre-summarized
+- [ ] 800-char tweet → pre-summarized
+- [ ] 5-tweet thread → pre-summarized as unit
+- [ ] Mock Gemini failure → falls back to original
+- [ ] Verify token counting accuracy
+
+**Acceptance:** Can run `--preview` and see "[pre-summarized]" markers on long content.
+
+---
+
+### Milestone 4: Image Handling
+
+**Goal:** Prioritize and prepare images for multimodal LLM.
+
+**Implementation:**
+- [ ] `prioritize_images(tweets)` → URLs with per-tweet cap
+- [ ] `fetch_and_encode_image(url)` → base64 for Gemini
+- [ ] Overflow handling (describe excess images)
+- [ ] Video thumbnail extraction
+
+**Tests:**
+- [ ] 10 images from one tweet → capped to 3
+- [ ] 20 total images → top 15 by engagement
+- [ ] Image download failure → graceful skip
+- [ ] Video → thumbnail only with duration note
+
+**Acceptance:** Can run `--preview` and see image count + overflow warnings.
+
+---
+
+### Milestone 5: Digest Generation
+
+**Goal:** Generate formatted digest from preprocessed content.
+
+**Implementation:**
+- [ ] `build_payload(tweets, summaries, images)` → structured markdown
+- [ ] `generate_digest(payload)` → Gemini multimodal call
+- [ ] System prompt with sections and formatting rules
+- [ ] Handle sparse feeds (< 5 tweets → raw format)
+- [ ] Save prompt.md and digest.md
+
+**Tests:**
+- [ ] 0 tweets → empty digest message
+- [ ] 3 tweets → raw formatted (no LLM)
+- [ ] 50 tweets → full LLM digest with sections
+- [ ] Mock Gemini response → verify output format
+- [ ] Non-English content → translated with tag
+
+**Acceptance:** Can run `--dry-run` and see formatted digest in stdout.
+
+---
+
+### Milestone 6: Delivery
+
+**Goal:** Send digest to WhatsApp with splitting and retry.
+
+**Implementation:**
+- [ ] `split_digest(text)` → parts at section boundaries
+- [ ] `send_digest_parts(parts, recipient)` → with retry
+- [ ] Part numbering (1/4, 2/4, etc.)
+- [ ] Partial failure → whole digest fails
+
+**Tests:**
+- [ ] Short digest → single message
+- [ ] 6000-char digest → split into 2 parts
+- [ ] Mock gateway failure → retry 3x then fail
+- [ ] Part 2 fails after retries → entire digest marked failed
+
+**Acceptance:** Can run `--list ai-dev` and receive digest on WhatsApp.
+
+---
+
+### Milestone 7: Status & Monitoring
+
+**Goal:** Track run status and enable monitoring alerts.
+
+**Implementation:**
+- [ ] `update_status(list, success, error_code)` with file locking
+- [ ] `load_status()` for time window calculation
+- [ ] Idempotency check (skip if ran within 30 min)
+- [ ] Save meta.json with full metrics
+
+**Tests:**
+- [ ] Successful run → updates `last_success`
+- [ ] Failed run → `last_success` unchanged, `error_code` set
+- [ ] Run twice quickly → second skipped (idempotency)
+- [ ] Concurrent runs → no file corruption (locking)
+
+**Acceptance:** Can run digest, check status.json, see correct state.
+
+---
+
+### Milestone 8: CLI & Config
+
+**Goal:** Full CLI interface and config validation.
+
+**Implementation:**
+- [ ] Argument parsing (--list, --dry-run, --preview, --force, etc.)
+- [ ] Config loading with version check
+- [ ] Crontab generation from schedules
+- [ ] Stale crontab detection
+
+**Tests:**
+- [ ] Invalid config version → clear error message
+- [ ] Missing required field → validation error
+- [ ] `--generate-crontab` → valid crontab syntax
+- [ ] Config newer than crontab → warning logged
+
+**Acceptance:** All CLI commands documented in `--help` work correctly.
+
+---
+
+### Milestone 9: Integration Testing
+
+**Goal:** End-to-end test with real (but sandboxed) data.
+
+**Implementation:**
+- [ ] Test fixture: 50 real tweets (anonymized)
+- [ ] Full pipeline run with mock delivery
+- [ ] Verify all output files created correctly
+- [ ] Performance baseline (< 30s for 50 tweets)
+
+**Tests:**
+- [ ] Full run produces: raw-tweets.json, pre-summaries.json, prompt.md, digest.md, meta.json
+- [ ] meta.json has accurate token counts and timing
+- [ ] status.json updated correctly
+- [ ] Log file contains expected entries
+
+**Acceptance:** Can run full pipeline against fixtures, all artifacts correct.
 
 ---
 
