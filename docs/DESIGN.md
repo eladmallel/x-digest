@@ -49,7 +49,7 @@ Location: `./scripts/x-digest.py`
 
 Recommended: OpenAI gpt-4o-mini (cheap, fast)
 Alternatives: claude-3-haiku, gemini-1.5-flash
-API Key: `~/.config/x-digest/openai_api_key`
+API Key: Set `OPENAI_API_KEY` in `.env`
 
 ## Status File
 
@@ -74,8 +74,14 @@ Self-managed in script: max 5MB, keeps 1 backup (.old)
 
 # Secrets
 
-• Bird cookies: `~/.config/bird/` (600 permissions)
-• OpenAI key: `~/.config/x-digest/openai_api_key` (600 permissions)
+All secrets are stored in `.env` (gitignored). See `.env.example` for required variables:
+
+• `OPENAI_API_KEY` — OpenAI API key for digest generation
+• `RECIPIENT` — WhatsApp recipient phone number
+• `WHATSAPP_GATEWAY` — Gateway URL (default: http://localhost:3420/api/message/send)
+
+External dependency:
+• Bird cookies: `~/.config/bird/` (600 permissions) — managed by bird CLI
 
 # System Crontab
 
@@ -208,14 +214,11 @@ The script reads this file at startup. All lists and schedules are defined here.
 {
   "version": 1,
   "defaults": {
-    "recipient": "$RECIPIENT",
     "hours_lookback": 12,
     "external_llm": {
       "provider": "openai",
-      "model": "gpt-4o-mini",
-      "api_key_path": "~/.config/x-digest/openai_api_key"
+      "model": "gpt-4o-mini"
     },
-    "whatsapp_gateway": "http://localhost:3420/api/message/send",
     "token_limits": {
       "max_input_tokens": 100000,
       "max_output_tokens": 4000,
@@ -434,15 +437,17 @@ cd scripts
 uv venv .venv
 
 # Install deps
-uv pip install requests
+uv pip install requests python-dotenv
 ```
 
-## API Key Setup
+## Environment Setup
 
 ```bash
-mkdir -p ~/.config/x-digest
-echo "sk-your-key" > ~/.config/x-digest/openai_api_key
-chmod 600 ~/.config/x-digest/openai_api_key
+# Copy example and fill in your values
+cp .env.example .env
+
+# Edit with your API key and recipient
+nano .env
 ```
 
 ---
