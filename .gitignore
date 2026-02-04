@@ -10,9 +10,8 @@ __pycache__/
 # Local data
 data/
 
-# Secrets (should never be committed)
-*_api_key
-*.secret
+# Environment (secrets)
+.env
 
 # Local config (use example as template)
 config/x-digest-config.json

@@ -24,16 +24,15 @@ See [docs/DESIGN.md](docs/DESIGN.md) for full design doc.
 
 ```bash
 # Install deps
-cd scripts && uv venv .venv && uv pip install requests
+cd scripts && uv venv .venv && uv pip install requests python-dotenv
+
+# Set up environment
+cp .env.example .env
+# Edit .env with your API key and recipient
 
 # Copy and edit config
 cp config/x-digest-config.example.json config/x-digest-config.json
-# Edit config/x-digest-config.json with your settings
-
-# Set up API key
-mkdir -p ~/.config/x-digest
-echo "sk-your-key" > ~/.config/x-digest/openai_api_key
-chmod 600 ~/.config/x-digest/openai_api_key
+# Edit config with your lists and schedules
 
 # Run digest
 python3 scripts/x-digest.py --list your-list --dry-run

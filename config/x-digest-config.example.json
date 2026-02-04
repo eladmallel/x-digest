@@ -1,14 +1,11 @@
 {
   "version": 1,
   "defaults": {
-    "recipient": "$RECIPIENT",
     "hours_lookback": 12,
     "external_llm": {
       "provider": "openai",
-      "model": "gpt-4o-mini",
-      "api_key_path": "~/.config/x-digest/openai_api_key"
+      "model": "gpt-4o-mini"
     },
-    "whatsapp_gateway": "http://localhost:3420/api/message/send",
     "token_limits": {
       "max_input_tokens": 100000,
       "max_output_tokens": 4000,
