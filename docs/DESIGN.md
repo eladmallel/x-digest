@@ -186,9 +186,54 @@ def prioritize_images(tweets: list[Tweet]) -> list[str]:
 - Include text description instead of raw image
 - Note "[Image: {description}]" in payload
 
-> **TODO:** Sanity test image parsing with Gemini API using real bird output before implementation.
+#### Gemini API Integration
 
-**Why this matters:** Instead of truncating long content and losing information, we preserve the key insights through targeted summarization. The multimodal LLM can understand screenshots, diagrams, and memes that are often central to technical tweets.
+Images are sent to Gemini as base64-encoded inline data:
+
+```python
+import requests
+import base64
+
+def fetch_and_encode_image(url: str) -> dict:
+    """Download image and encode for Gemini API."""
+    response = requests.get(url)
+    img_base64 = base64.b64encode(response.content).decode('utf-8')
+    mime_type = "image/jpeg" if url.endswith(".jpg") else "image/png"
+    
+    return {
+        "inline_data": {
+            "mime_type": mime_type,
+            "data": img_base64
+        }
+    }
+
+def build_gemini_payload(tweets_text: str, images: list[str]) -> dict:
+    """Build multimodal payload for Gemini API."""
+    parts = [{"text": tweets_text}]
+    
+    for img_url in images:
+        parts.append(fetch_and_encode_image(img_url))
+    
+    return {
+        "contents": [{"parts": parts}]
+    }
+
+# API call
+url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
+response = requests.post(url, json=payload)
+```
+
+**Tested token costs (Gemini 2.0 Flash):**
+
+| Image Type | File Size | Prompt Tokens |
+|------------|-----------|---------------|
+| GitHub screenshot | 117 KB | 1,865 |
+| Photo (LinkedIn ad) | 165 KB | 1,861 |
+| Code screenshot | 84 KB | 1,861 |
+
+Token cost is ~1,800-1,900 regardless of file size — Gemini normalizes images internally.
+
+**Why this matters:** The multimodal LLM can understand screenshots, diagrams, charts, and memes that are often central to technical tweets. A code screenshot or architecture diagram often contains more signal than the tweet text itself.
 
 ### Step 3: Digest Generation
 
@@ -863,4 +908,4 @@ Implementation will analyze the saved `digest.md` and `raw-tweets.json` files in
 
 ---
 
-*Design doc v3.0 — Time windows, payload format, multimodal images, sparse handling*
+*Design doc v3.1 — Added Gemini API integration details*
