@@ -13,22 +13,37 @@ You follow smart people on Twitter. They post throughout the day. You don't have
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │  bird CLI   │────▶│ Pre-Summary │────▶│   Digest    │────▶│  WhatsApp   │
-│ fetch tweets│     │   (long     │     │  LLM Call   │     │   Delivery  │
-│             │     │  content)   │     │             │     │             │
+│ fetch tweets│     │  (long text │     │  LLM Call   │     │   Delivery  │
+│             │     │  + images)  │     │             │     │             │
 └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
        │                   │                   │                   │
        ▼                   ▼                   ▼                   ▼
    Raw JSON          Summaries of        Formatted           Message sent
-   (last 12h)        threads/long        digest with         to recipient
-                     tweets              sections
+   (since last       threads/long        digest with         to recipient
+    digest)          tweets + images     sections
 ```
 
 ### Step 1: Fetch Tweets
 
-The script uses the `bird` CLI to pull recent tweets from a Twitter list:
+The script fetches tweets **since the last successful digest** for this list:
+
+```python
+def get_time_window(list_name: str) -> tuple[datetime, datetime]:
+    status = load_status()
+    last_success = status["lists"].get(list_name, {}).get("last_success")
+    
+    end_time = datetime.now(UTC)
+    start_time = parse_iso(last_success) if last_success else end_time - timedelta(hours=24)
+    
+    return (start_time, end_time)
+```
+
+- **Normal case:** Fetches tweets since last successful digest
+- **First run:** Defaults to 24 hours lookback
+- **Missed digest:** Next run catches everything since last success (no gaps)
 
 ```bash
-bird list-timeline <list-id> --hours 12 --json
+bird list-timeline <list-id> --since <timestamp> --json
 ```
 
 This returns a JSON array of tweet objects:
@@ -81,9 +96,11 @@ interface Media {
 
 **Thread reconstruction:** Tweets in the same thread share `conversationId`. Sort by `createdAt` and link via `inReplyToStatusId` to reconstruct order.
 
-### Step 2: Pre-Summarization (Smart Content Handling)
+### Step 2: Pre-Processing (Text + Images)
 
-Not all tweets are equal. A single hot take fits in a sentence. A 15-tweet thread about AI safety needs compression. Pre-summarization handles this elegantly:
+Not all tweets are equal. A single hot take fits in a sentence. A 15-tweet thread needs compression. An image-heavy tweet needs visual context. Pre-processing handles this elegantly.
+
+#### Text Pre-Summarization
 
 ```
                      Raw Tweets
@@ -97,7 +114,7 @@ Not all tweets are equal. A single hot take fits in a sentence. A 15-tweet threa
           │         ┌─────────────────────┐
           │         │  Individual LLM     │
           │         │  summary call       │
-          │         │  (1-2 paragraphs)   │
+          │         │  (2 paragraphs)     │
           │         └─────────────────────┘
           │               │               │
           ▼               ▼               ▼
@@ -105,18 +122,152 @@ Not all tweets are equal. A single hot take fits in a sentence. A 15-tweet threa
                           │
                           ▼
                   Combined payload
-                  (ready for digest)
 ```
 
-**What triggers pre-summarization:**
+**What triggers text pre-summarization:**
 - Tweet text > 500 characters
 - Quote tweet where quoted content > 300 characters  
 - Thread with 2+ connected tweets
 - Combined content (tweet + quote + context) > 600 characters
 
-**Why this matters:** Instead of truncating long content and losing information, we preserve the key insights through targeted summarization. The main digest LLM then works with normalized content sizes.
+**Pre-summarization prompt:**
+
+```
+You are summarizing Twitter content for a digest. Preserve the key insights in detail.
+
+CONTENT TYPE: {thread | long_tweet | quote_chain}
+AUTHOR: @{username}
+ORIGINAL LENGTH: {char_count} chars / {tweet_count} tweets
+
+CONTENT:
+{full content here}
+
+INSTRUCTIONS:
+- Write 2 paragraphs (4-6 sentences total)
+- First paragraph: core message, main argument, key claims
+- Second paragraph: supporting details, specific numbers, recommendations, implications
+- Preserve the author's perspective and tone
+- Keep technical details if present
+- Note what's opinion vs fact where relevant
+
+OUTPUT: Just the summary, no preamble.
+```
+
+#### Image Handling (Multimodal)
+
+We use a multimodal LLM (Gemini) that can see images. Images are included directly in the digest payload.
+
+**Token cost:** ~1,900 tokens per image (tested with Gemini 2.0 Flash)
+
+**Budget:** Max ~15 images per digest (to leave room for text + response)
+
+```python
+TOKENS_PER_IMAGE = 1900
+MAX_IMAGE_TOKENS = 30000
+MAX_IMAGES = MAX_IMAGE_TOKENS // TOKENS_PER_IMAGE  # ~15
+
+def prioritize_images(tweets: list[Tweet]) -> list[str]:
+    """Return URLs of images to include, prioritized by engagement."""
+    all_images = []
+    for tweet in tweets:
+        for img in (tweet.media or []):
+            if img.type == "photo":
+                all_images.append({
+                    "url": img.url,
+                    "engagement": tweet.likeCount + tweet.retweetCount * 2
+                })
+    
+    all_images.sort(key=lambda x: x["engagement"], reverse=True)
+    return [img["url"] for img in all_images[:MAX_IMAGES]]
+```
+
+**Overflow images (beyond top 15):**
+- Pre-describe with a quick vision call
+- Include text description instead of raw image
+- Note "[Image: {description}]" in payload
+
+> **TODO:** Sanity test image parsing with Gemini API using real bird output before implementation.
+
+**Why this matters:** Instead of truncating long content and losing information, we preserve the key insights through targeted summarization. The multimodal LLM can understand screenshots, diagrams, and memes that are often central to technical tweets.
 
 ### Step 3: Digest Generation
+
+#### Payload Format
+
+The pre-processed content is formatted as a structured payload for the digest LLM:
+
+```markdown
+# Digest Request: AI & Dev
+**Period:** Feb 4, 7:00 AM – 7:00 PM EST
+**Tweets:** 47 total (3 pre-summarized, 12 with images)
+
+---
+
+## Tweet 1
+- **Author:** @bcherny (Boris Cherny)
+- **Time:** 2h ago
+- **Engagement:** 268 ❤️ · 7 🔁 · 41 💬
+- **Text:** You can now use Slack in Cowork to have Claude read & send messages
+- **Link:** https://x.com/bcherny/status/2019107520179282325
+- **Quote:** @lydiahallie: "Claude Cowork now supports the Slack MCP..."
+
+[Image 1 attached]
+
+---
+
+## Tweet 2 (Pre-summarized)
+- **Author:** @simonw (Simon Willison)
+- **Time:** 5h ago
+- **Engagement:** 1.2k ❤️ · 89 🔁 · 156 💬
+- **Original:** 2,847 chars (8-tweet thread)
+- **Summary:** Simon walks through building a RAG pipeline with Claude, covering chunking strategies and embedding models. Key insight: smaller chunks with more overlap outperformed larger chunks in his tests. He recommends starting with 256-token chunks and 50-token overlap.
+- **Link:** https://x.com/simonw/status/2019087654321
+
+[Image 1 attached]
+[Image 2 attached]
+```
+
+Images are attached inline with their tweets using the multimodal API.
+
+#### Sparse/Empty Feed Handling
+
+What if there are few or no tweets since the last digest?
+
+```python
+MIN_TWEETS_FOR_LLM = 5
+
+def generate_digest(tweets: list[Tweet]) -> str:
+    if len(tweets) == 0:
+        return format_empty_digest()
+    elif len(tweets) < MIN_TWEETS_FOR_LLM:
+        return format_raw_digest(tweets)  # No LLM, just formatted list
+    else:
+        return format_llm_digest(tweets)  # Full LLM processing
+```
+
+**Empty digest (0 tweets):**
+```
+🤖 *AI & Dev Digest* — Feb 4, 2026 (Evening)
+
+📭 *Quiet period* — No new tweets since last digest.
+```
+
+**Sparse digest (<5 tweets) — no LLM call, just formatting:**
+```
+🤖 *AI & Dev Digest* — Feb 4, 2026 (Evening)
+
+📋 *3 tweets since last digest:*
+
+• @bcherny: You can now use Slack in Cowork...
+  268 ❤️ · https://x.com/bcherny/status/123
+
+• @simonw: The demo on whisper.cpp is worth trying...
+  52 ❤️ · https://x.com/simonw/status/456
+```
+
+This saves LLM tokens while still delivering value.
+
+#### LLM Processing
 
 The combined payload (short tweets as-is, long content summarized) goes to the digest LLM with a system prompt tailored to the list. The LLM:
 
@@ -229,7 +380,7 @@ The formatted digest is sent via WhatsApp through the OpenClaw gateway API. If t
 - Python 3.11+
 - [uv](https://github.com/astral-sh/uv) package manager
 - [bird CLI](https://github.com/openclaw/bird) with valid Twitter cookies
-- OpenAI API key
+- Gemini API key (for multimodal LLM)
 - OpenClaw gateway running (for WhatsApp delivery)
 
 ### Installation
@@ -246,7 +397,7 @@ uv pip install requests python-dotenv
 
 # Configure secrets
 cp .env.example .env
-# Edit .env with your OPENAI_API_KEY and RECIPIENT
+# Edit .env with your GEMINI_API_KEY and RECIPIENT
 
 # Configure lists
 cp config/x-digest-config.example.json config/x-digest-config.json
@@ -277,7 +428,7 @@ python3 scripts/x-digest.py --list your-list
 
 ```bash
 # Required
-OPENAI_API_KEY=sk-your-key-here
+GEMINI_API_KEY=your-gemini-api-key
 RECIPIENT=+1234567890
 
 # Optional (defaults shown)
@@ -291,10 +442,9 @@ BIRD_ENV_PATH=~/.config/bird/env
 {
   "version": 1,
   "defaults": {
-    "hours_lookback": 12,
     "external_llm": {
-      "provider": "openai",
-      "model": "gpt-4o-mini"
+      "provider": "gemini",
+      "model": "gemini-2.0-flash"
     }
   },
   "lists": {
@@ -396,7 +546,7 @@ python3 scripts/x-digest.py --onboard-list <list-id> --name <short-name>
 │  │  (trigger)  │    │                                         │    │
 │  └─────────────┘    │  1. bird CLI ──▶ raw tweets (JSON)      │    │
 │                     │  2. Pre-summarize long content          │    │
-│                     │  3. OpenAI API ──▶ digest               │    │
+│                     │  3. Gemini API ──▶ digest               │    │
 │                     │  4. WhatsApp gateway ──▶ delivery       │    │
 │                     │  5. Write status.json                   │    │
 │                     └─────────────────────────────────────────┘    │
@@ -469,7 +619,7 @@ data/
 | Dependency | Purpose | Auth |
 |------------|---------|------|
 | bird CLI | Fetch tweets from Twitter | Cookies at `~/.config/bird/` |
-| OpenAI API | LLM for summarization + digest | API key in `.env` |
+| Gemini API | Multimodal LLM for summarization + digest | API key in `.env` |
 | OpenClaw gateway | WhatsApp message delivery | Local HTTP API |
 
 ### Scheduling
@@ -633,7 +783,7 @@ Adjust thresholds in config:
 
 **Retried automatically:**
 - ✅ bird CLI (network issues, rate limits)
-- ✅ OpenAI API (rate limits, transient errors)
+- ✅ Gemini API (rate limits, transient errors)
 - ✅ WhatsApp gateway (temporary unavailability)
 
 **Not retried:**
@@ -713,4 +863,4 @@ Implementation will analyze the saved `digest.md` and `raw-tweets.json` files in
 
 ---
 
-*Design doc v2.5 — All TODOs resolved*
+*Design doc v3.0 — Time windows, payload format, multimodal images, sparse handling*

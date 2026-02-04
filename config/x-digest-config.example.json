@@ -1,10 +1,9 @@
 {
   "version": 1,
   "defaults": {
-    "hours_lookback": 12,
     "external_llm": {
-      "provider": "openai",
-      "model": "gpt-4o-mini"
+      "provider": "gemini",
+      "model": "gemini-2.0-flash"
     },
     "token_limits": {
       "max_input_tokens": 100000,
