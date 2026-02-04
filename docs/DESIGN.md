@@ -169,6 +169,36 @@ Common list-specific customizations:
 - Language handling (e.g., Hebrew-first for Israeli tech list)
 - Topic focus (e.g., "prioritize AI safety content")
 
+#### Example Output
+
+Here's what a typical digest looks like on WhatsApp:
+
+```
+🤖 *AI & Dev Digest* — Feb 4, 2026 (Morning)
+
+🔥 *Top*
+
+*Claude Code gets Slack integration* — You can now use Slack directly in Cowork, letting Claude read and send messages. @bcherny https://x.com/bcherny/status/2019107520179282325
+
+*Mistral launches Voxtral Transcribe 2* — State-of-the-art speech-to-text with sub-200ms latency and speaker diarization. @MistralAI https://x.com/MistralAI/status/2019068826097213953
+
+🚀 *Claude Cowork Launch*
+
+Multiple people discussing the new Slack integration in Cowork:
+
+*Lydia demos the Slack connector* — Shows morning workflow: catch up on missed messages, draft replies for review. @lydiahallie https://x.com/lydiahallie/status/2019106724347801768
+
+*Thariq uses it for doc drafts* — First pass of every doc based on Slack context. @trq212 https://x.com/trq212/status/2019107359742931021
+
+💡 *Worth Noting*
+
+*Granola adds MCP support* — Meeting notes tool now integrates with Claude and ChatGPT via MCP. @meetgranola https://x.com/meetgranola/status/2019108975107846263
+
+*Simon tries Voxtral demo* — Real-time transcription is "really impressive", works in browser. @simonw https://x.com/simonw/status/2019116012969554214
+```
+
+Note: The LLM created a topical section "🚀 Claude Cowork Launch" because multiple tweets discussed the same theme.
+
 ### Step 4: Delivery
 
 The formatted digest is sent via WhatsApp through the OpenClaw gateway API. If the digest exceeds 4000 characters, it's automatically split into multiple messages with part indicators (1/3, 2/3, 3/3).
@@ -671,12 +701,10 @@ Implementation will analyze the saved `digest.md` and `raw-tweets.json` files in
 
 Remaining items to resolve:
 
-1. **Output format**: What does the final WhatsApp digest actually look like? Show an example.
+1. **Handling Hebrew/RTL**: Any special handling needed for Hebrew tweets in digests?
 
-2. **Handling Hebrew/RTL**: Any special handling needed for Hebrew tweets in digests?
-
-3. **Skip pre-summarization option**: Should we add `skip_pre_summarization` for lists with typically short content?
+2. **Skip pre-summarization option**: Should we add `skip_pre_summarization` for lists with typically short content?
 
 ---
 
-*Design doc v2.2 — Added per-list status tracking*
+*Design doc v2.3 — Added example output format*
