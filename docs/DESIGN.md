@@ -150,7 +150,7 @@ FORMATTING:
 - 1-2 sentences per item, max
 - Format: Summary — @author https://x.com/{username}/status/{id}
 - Group related content (quote + original, reactions to same news)
-- For non-English: note language, provide English summary
+- For non-English content: translate to English, prefix with [Language] tag (e.g., [Hebrew], [Spanish])
 - Skip pure retweets unless they add context
 
 PATTERN RECOGNITION:
@@ -198,6 +198,20 @@ Multiple people discussing the new Slack integration in Cowork:
 ```
 
 Note: The LLM created a topical section "🚀 Claude Cowork Launch" because multiple tweets discussed the same theme.
+
+#### Non-English Content (Hebrew, etc.)
+
+Non-English tweets are **translated to English** with a language tag:
+
+```
+*[Hebrew] Ori on Israeli AI talent* — Discusses challenges Israeli startups face retaining AI talent against US offers. @ori_cohen https://x.com/ori_cohen/status/123
+```
+
+Why translate rather than preserve original:
+- Consistent LTR reading flow (WhatsApp RTL rendering is inconsistent)
+- Quick scanning without language context-switching
+- The link is always there for the original text
+- The `[Hebrew]` tag signals it was translated
 
 ### Step 4: Delivery
 
@@ -701,10 +715,8 @@ Implementation will analyze the saved `digest.md` and `raw-tweets.json` files in
 
 Remaining items to resolve:
 
-1. **Handling Hebrew/RTL**: Any special handling needed for Hebrew tweets in digests?
-
-2. **Skip pre-summarization option**: Should we add `skip_pre_summarization` for lists with typically short content?
+1. **Skip pre-summarization option**: Should we add `skip_pre_summarization` for lists with typically short content?
 
 ---
 
-*Design doc v2.3 — Added example output format*
+*Design doc v2.4 — Added non-English content handling*
