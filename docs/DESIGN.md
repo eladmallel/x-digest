@@ -1,8 +1,14 @@
 # X-Digest: Twitter List Digest Pipeline
 
-A tool that turns your curated Twitter lists into concise, well-organized digests delivered to WhatsApp on a schedule.
+A tool that turns your curated Twitter lists into concise, well-organized digests delivered on a schedule.
 
-You follow smart people on Twitter. They post throughout the day. You don't have time to scroll. X-Digest fetches tweets from your lists, uses an LLM to distill the signal from the noise, and delivers a formatted digest straight to your phone.
+You follow smart people on Twitter. They post throughout the day. You don't have time to scroll. X-Digest fetches tweets from your lists, uses an LLM to distill the signal from the noise, and delivers a formatted digest straight to your phone — via WhatsApp, Telegram, or any other supported channel.
+
+### Design Principles
+
+- **Secure by default** — untrusted tweet content never reaches your AI assistant (see [Security Model](#security-model))
+- **Pluggable** — swap LLM providers and delivery channels without changing core logic
+- **Minimal config** — just a list ID, API key, and delivery target to get started
 
 ---
 
@@ -11,16 +17,16 @@ You follow smart people on Twitter. They post throughout the day. You don't have
 ### The Pipeline
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  bird CLI   │────▶│ Pre-Summary │────▶│   Digest    │────▶│  WhatsApp   │
-│ fetch tweets│     │  (long text │     │  LLM Call   │     │   Delivery  │
-│             │     │  + images)  │     │             │     │             │
-└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌──────────────┐
+│  bird CLI   │────▶│ Pre-Summary │────▶│   Digest    │────▶│   Delivery   │
+│ fetch tweets│     │  (long text │     │  LLM Call   │     │  (pluggable) │
+│             │     │  + images)  │     │ (pluggable) │     │              │
+└─────────────┘     └─────────────┘     └─────────────┘     └──────────────┘
        │                   │                   │                   │
        ▼                   ▼                   ▼                   ▼
-   Raw JSON          Summaries of        Formatted           Message sent
-   (since last       threads/long        digest with         to recipient
-    digest)          tweets + images     sections
+   Raw JSON          Summaries of        Formatted           WhatsApp,
+   (since last       threads/long        digest with         Telegram,
+    digest)          tweets + images     sections            or other
 ```
 
 ### Step 1: Fetch Tweets
@@ -172,7 +178,34 @@ Not all tweets are equal. A single hot take fits in a sentence. A 15-tweet threa
                   Combined payload
 ```
 
-**Model:** Pre-summarization uses the same Gemini model as digest generation (configured in `defaults.external_llm`). This keeps the pipeline simple — one model, one API key, consistent behavior.
+**Model:** Pre-summarization uses the same LLM as digest generation (configured in `defaults.llm`). The LLM is accessed through a pluggable provider interface:
+
+```python
+from abc import ABC, abstractmethod
+
+class LLMProvider(ABC):
+    """Base class for LLM providers."""
+    
+    @abstractmethod
+    def generate(self, prompt: str, system: str = "", images: list[bytes] = []) -> str:
+        """Generate text from prompt, optionally with images. Returns response text."""
+        ...
+    
+    @abstractmethod
+    def count_tokens(self, text: str) -> int:
+        """Estimate token count for text."""
+        ...
+```
+
+**Supported providers:**
+
+| Provider | Config Key | Multimodal | Notes |
+|----------|-----------|------------|-------|
+| Gemini | `gemini` | ✅ | Recommended — best price/performance for multimodal |
+
+Additional providers (OpenAI, Anthropic, local) can be added by implementing `LLMProvider`.
+
+This keeps the pipeline simple — one model, one API key, consistent behavior.
 
 **What triggers text pre-summarization:**
 - Tweet text > 500 characters
@@ -495,12 +528,66 @@ Why translate rather than preserve original:
 - The link is always there for the original text
 - The `[Hebrew]` tag signals it was translated
 
-### Step 4: Delivery
+### Step 4: Delivery (Pluggable)
 
-The formatted digest is sent via WhatsApp through the OpenClaw gateway API.
+Delivery uses a pluggable provider system. Each provider implements a simple interface:
 
-**WhatsApp formatting supported:** `*bold*`, `_italic_`, `~strikethrough~`, ``` `code` ```  
+```python
+from abc import ABC, abstractmethod
+
+class DeliveryProvider(ABC):
+    """Base class for all delivery providers."""
+    
+    @abstractmethod
+    def send(self, recipient: str, message: str) -> str:
+        """Send a message. Returns message ID. Raises DeliveryError on failure."""
+        ...
+    
+    @abstractmethod
+    def max_message_length(self) -> int:
+        """Maximum characters per message for this provider."""
+        ...
+    
+    @property
+    def name(self) -> str:
+        """Provider name for logging."""
+        return self.__class__.__name__
+```
+
+**Supported providers:**
+
+| Provider | Config Key | Requirements |
+|----------|-----------|--------------|
+| WhatsApp | `whatsapp` | WhatsApp gateway (e.g., OpenClaw) |
+| Telegram | `telegram` | Bot token (via @BotFather) |
+
+**Adding a new provider:** Implement `DeliveryProvider`, add to provider registry. See [Contributing](#contributing).
+
+#### WhatsApp Provider
+
+Sends via a WhatsApp gateway HTTP API (e.g., OpenClaw, Baileys, or any compatible gateway).
+
+**Formatting supported:** `*bold*`, `_italic_`, `~strikethrough~`, ``` `code` ```  
 **Not supported:** Headers, clickable link text (use plain URLs)
+
+#### Telegram Provider
+
+Sends via Telegram Bot API. Setup takes ~2 minutes:
+
+1. Message @BotFather on Telegram → `/newbot` → get bot token
+2. Start a chat with your bot → get your chat ID
+3. Add to config:
+   ```json
+   "delivery": {
+     "provider": "telegram",
+     "telegram": {
+       "bot_token": "YOUR_BOT_TOKEN",
+       "chat_id": "YOUR_CHAT_ID"
+     }
+   }
+   ```
+
+**Formatting:** Telegram supports MarkdownV2 — the provider translates WhatsApp-style formatting automatically.
 
 #### Message Splitting
 
@@ -677,36 +764,56 @@ bird list-timeline <your-list-id> -n 5 --json
 
 **Pro tip:** Set a calendar reminder for every 10 days to proactively refresh cookies before they expire.
 
-### Dependencies
-
-**requirements.txt:**
-```
-requests>=2.31.0,<3
-python-dotenv>=1.0.0,<2
-```
-
-Pin to major versions for stability while allowing security patches.
-
 ### Installation
 
+#### From PyPI (recommended)
+
 ```bash
-# Clone the repo
+pip install x-digest
+```
+
+Or with [uv](https://github.com/astral-sh/uv):
+
+```bash
+uv pip install x-digest
+```
+
+This installs the `x-digest` CLI command.
+
+#### From Source (development)
+
+```bash
 git clone https://github.com/eladmallel/x-digest.git
 cd x-digest
-
-# Set up Python environment
-uv venv .venv
-source .venv/bin/activate
-uv pip install -r requirements.txt
-
-# Configure secrets
-cp .env.example .env
-# Edit .env with your GEMINI_API_KEY and RECIPIENT
-
-# Configure lists
-cp config/x-digest-config.example.json config/x-digest-config.json
-# Edit config with your Twitter list IDs
+pip install -e ".[dev]"
 ```
+
+### Setup
+
+```bash
+# Create config directory (default: ~/.config/x-digest/)
+mkdir -p ~/.config/x-digest
+
+# Create minimal config
+cat > ~/.config/x-digest/config.json << 'EOF'
+{
+  "version": 1,
+  "lists": {
+    "my-list": {
+      "id": "YOUR_TWITTER_LIST_ID"
+    }
+  }
+}
+EOF
+
+# Set up environment variables
+cat > ~/.config/x-digest/.env << 'EOF'
+GEMINI_API_KEY=your-gemini-api-key
+WHATSAPP_RECIPIENT=+1234567890
+EOF
+```
+
+**Config search order:** `./x-digest-config.json` → `~/.config/x-digest/config.json` → `--config` flag
 
 ### First Run
 
@@ -736,11 +843,18 @@ python3 scripts/x-digest.py --list your-list --force
 ```bash
 # Required
 GEMINI_API_KEY=your-gemini-api-key
-RECIPIENT=+1234567890
+
+# Delivery (choose one)
+# WhatsApp:
+WHATSAPP_GATEWAY=http://localhost:3420/api/message/send
+WHATSAPP_RECIPIENT=+1234567890
+
+# Telegram:
+# TELEGRAM_BOT_TOKEN=your-bot-token
+# TELEGRAM_CHAT_ID=your-chat-id
 
 # Optional (defaults shown)
-WHATSAPP_GATEWAY=http://localhost:3420/api/message/send
-BIRD_ENV_PATH=~/.config/bird/env
+# BIRD_ENV_PATH=~/.config/bird/env
 ```
 
 ### Config File (`config/x-digest-config.json`)
@@ -767,15 +881,57 @@ def load_config():
 
 **No auto-migration** — if the config version doesn't match, the script fails with clear instructions. This keeps the codebase simple and avoids silent data corruption.
 
-#### Schema
+#### Minimal Config (Required Fields Only)
+
+Most settings have smart defaults. You only need:
+
+```json
+{
+  "version": 1,
+  "lists": {
+    "my-list": {
+      "id": "YOUR_TWITTER_LIST_ID"
+    }
+  }
+}
+```
+
+Everything else (LLM model, token limits, pre-summarization thresholds, delivery settings) uses sensible defaults. Override only what you need.
+
+#### Full Config (All Options)
 
 ```json
 {
   "version": 1,
   "defaults": {
-    "external_llm": {
+    "llm": {
       "provider": "gemini",
       "model": "gemini-2.0-flash"
+    },
+    "timezone": "America/New_York",
+    "token_limits": {
+      "max_input_tokens": 100000,
+      "max_output_tokens": 4000,
+      "warn_at_percent": 80
+    },
+    "pre_summarization": {
+      "enabled": true,
+      "long_tweet_chars": 500,
+      "long_quote_chars": 300,
+      "long_combined_chars": 600,
+      "thread_min_tweets": 2,
+      "max_summary_tokens": 300
+    }
+  },
+  "delivery": {
+    "provider": "whatsapp",
+    "whatsapp": {
+      "gateway_url": "http://localhost:3420/api/message/send",
+      "recipient": "+1234567890"
+    },
+    "telegram": {
+      "bot_token": "YOUR_BOT_TOKEN",
+      "chat_id": "YOUR_CHAT_ID"
     }
   },
   "lists": {
@@ -813,7 +969,13 @@ def load_config():
       "cron": "0 12 * * *",
       "description": "7am EST"
     }
-  ]
+  ],
+  "retry": {
+    "max_attempts": 3,
+    "initial_delay_seconds": 2,
+    "backoff_multiplier": 2,
+    "max_delay_seconds": 30
+  }
 }
 ```
 
@@ -839,31 +1001,50 @@ Or use **LLM-assisted onboarding** (see Advanced Features).
 
 ## CLI Reference
 
+After installation (`pip install x-digest`), the `x-digest` command is available:
+
 ```bash
 # Run digest for a specific list
-python3 scripts/x-digest.py --list <list-name>
+x-digest run --list <list-name>
 
 # Dry run (generate digest, print to stdout, don't send)
-python3 scripts/x-digest.py --list <list-name> --dry-run
+x-digest run --list <list-name> --dry-run
 
 # Preview (show fetched tweets and prompt, no LLM call)
-python3 scripts/x-digest.py --list <list-name> --preview
-
-# Send to a different recipient (for testing)
-python3 scripts/x-digest.py --list <list-name> --test-recipient "+1234567890"
-
-# Validate configuration file
-python3 scripts/x-digest.py --validate-config
-
-# Generate crontab from config schedules
-python3 scripts/x-digest.py --generate-crontab
-
-# Onboard a new list with LLM assistance
-python3 scripts/x-digest.py --onboard-list <list-id> --name <short-name>
+x-digest run --list <list-name> --preview
 
 # Force run (bypass idempotency check)
-python3 scripts/x-digest.py --list <list-name> --force
+x-digest run --list <list-name> --force
+
+# Watch mode (re-run on interval, great for testing)
+x-digest watch --list <list-name> --every 12h
+
+# Send to a different recipient (for testing)
+x-digest run --list <list-name> --test-recipient "+1234567890"
+
+# Validate configuration file
+x-digest validate
+
+# Generate crontab from config schedules
+x-digest crontab
+
+# Onboard a new list with LLM assistance
+x-digest onboard <list-id> --name <short-name>
 ```
+
+### Watch Mode
+
+For users who don't want to set up cron, `--watch` runs in the foreground and re-executes on an interval:
+
+```bash
+# Run every 12 hours
+x-digest watch --list ai-dev --every 12h
+
+# Run every 30 minutes (for testing)
+x-digest watch --list ai-dev --every 30m
+```
+
+Watch mode respects the same idempotency checks as cron — if a digest already ran within the window, it skips. Use Ctrl+C to stop.
 
 ---
 
@@ -1030,9 +1211,9 @@ This enables monitoring of costs over time and debugging slow runs.
 
 #### WhatsApp Gateway API Contract
 
-The script sends messages via the OpenClaw gateway's HTTP API:
+The WhatsApp provider sends messages via any compatible HTTP gateway. It expects a simple REST API:
 
-**Endpoint:** `POST /api/message/send`
+**Endpoint:** `POST <gateway_url>`
 
 **Request:**
 ```json
@@ -1059,6 +1240,10 @@ The script sends messages via the OpenClaw gateway's HTTP API:
 }
 ```
 
+**Compatible gateways:** Any gateway that implements this contract works. Examples:
+- [OpenClaw](https://github.com/openclaw/openclaw) (default: `http://localhost:3420/api/message/send`)
+- Any Baileys-based gateway with a REST wrapper
+
 **Error codes:**
 
 | Code | Meaning | Retry? |
@@ -1069,32 +1254,20 @@ The script sends messages via the OpenClaw gateway's HTTP API:
 | `MESSAGE_TOO_LONG` | Exceeded 4096 char limit | No (split first) |
 | `AUTH_FAILED` | WhatsApp session expired | No (manual relink) |
 
-**Python helper:**
+#### Telegram Bot API Contract
 
-```python
-import requests
+The Telegram provider uses the standard [Bot API](https://core.telegram.org/bots/api):
 
-GATEWAY_URL = os.getenv("WHATSAPP_GATEWAY", "http://localhost:3420")
-
-def send_whatsapp(recipient: str, message: str) -> str:
-    """Send WhatsApp message, return message ID or raise SendError."""
-    response = requests.post(
-        f"{GATEWAY_URL}/api/message/send",
-        json={
-            "channel": "whatsapp",
-            "to": recipient,
-            "message": message
-        },
-        timeout=10
-    )
-    
-    data = response.json()
-    
-    if not data.get("success"):
-        raise SendError(data.get("error", "UNKNOWN"))
-    
-    return data["messageId"]
 ```
+POST https://api.telegram.org/bot<token>/sendMessage
+{
+  "chat_id": "CHAT_ID",
+  "text": "Your digest content...",
+  "parse_mode": "MarkdownV2"
+}
+```
+
+No gateway needed — Telegram bots connect directly to Telegram's servers.
 
 **Cookie lifetime:** Twitter cookies typically last 1-2 weeks before requiring refresh. The monitoring job detects `BIRD_AUTH_FAILED` errors and alerts with refresh instructions. No proactive expiry detection — we handle it reactively when it fails.
 

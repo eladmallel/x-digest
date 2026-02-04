@@ -12,29 +12,43 @@ Detailed breakdown of implementation into small, testable milestones.
 
 ## Project Structure
 
+Uses standard Python packaging (`pyproject.toml` + `src/` layout) for pip installability:
+
 ```
 x-digest/
-├── scripts/
+├── src/
 │   └── x_digest/
 │       ├── __init__.py
-│       ├── main.py              # CLI entry point
+│       ├── cli.py               # CLI entry point (argparse)
 │       ├── config.py            # Config loading & validation
 │       ├── fetch.py             # bird CLI integration
 │       ├── classify.py          # Tweet classification & threading
+│       ├── models.py            # Tweet/Media dataclasses
 │       ├── presummary.py        # Pre-summarization logic
 │       ├── images.py            # Image handling
 │       ├── digest.py            # Digest generation
-│       ├── delivery.py          # WhatsApp delivery
 │       ├── status.py            # Status file management
-│       └── errors.py            # Error codes & exceptions
+│       ├── watch.py             # Watch mode (interval-based re-run)
+│       ├── errors.py            # Error codes & exceptions
+│       ├── llm/
+│       │   ├── __init__.py
+│       │   ├── base.py          # LLMProvider ABC
+│       │   └── gemini.py        # Gemini implementation
+│       └── delivery/
+│           ├── __init__.py
+│           ├── base.py          # DeliveryProvider ABC
+│           ├── whatsapp.py      # WhatsApp gateway implementation
+│           └── telegram.py      # Telegram Bot API implementation
 ├── tests/
 │   ├── unit/
 │   │   ├── test_config.py
 │   │   ├── test_classify.py
+│   │   ├── test_models.py
 │   │   ├── test_presummary.py
 │   │   ├── test_images.py
 │   │   ├── test_digest.py
 │   │   ├── test_delivery.py
+│   │   ├── test_llm.py
 │   │   └── test_status.py
 │   ├── integration/
 │   │   ├── test_fetch_to_classify.py
@@ -54,10 +68,14 @@ x-digest/
 │           ├── gemini_presummary.json
 │           ├── gemini_digest.json
 │           └── whatsapp_success.json
+├── .github/
+│   └── workflows/
+│       └── test.yml             # CI: run unit tests on push/PR
+├── pyproject.toml               # Package metadata + dependencies
 ├── config/
 ├── data/
 ├── docs/
-└── requirements.txt
+└── LICENSE
 ```
 
 ---
@@ -66,25 +84,68 @@ x-digest/
 
 ### Milestone 1.1: Project Scaffolding
 
-**Goal:** Set up project structure, dependencies, and test harness.
+**Goal:** Set up project structure, packaging, CI, and test harness.
 
 **Tasks:**
-- [ ] Create directory structure above
-- [ ] Create `pyproject.toml` with dependencies
+- [ ] Create `src/` directory structure above
+- [ ] Create `pyproject.toml` with metadata, dependencies, and `[project.scripts]` entry point
 - [ ] Set up pytest with coverage
 - [ ] Create empty module files with docstrings
+- [ ] Create `.github/workflows/test.yml` for CI
+- [ ] Verify `pip install -e ".[dev]"` works
 - [ ] Verify `pytest` runs (0 tests, no errors)
+- [ ] Verify `x-digest --help` works
+
+**pyproject.toml (key parts):**
+```toml
+[project]
+name = "x-digest"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.31.0,<3",
+    "python-dotenv>=1.0.0,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-cov"]
+
+[project.scripts]
+x-digest = "x_digest.cli:main"
+```
+
+**GitHub Actions CI:**
+```yaml
+# .github/workflows/test.yml
+name: Tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
+      - run: pytest tests/unit/ -v --tb=short
+```
 
 **Unit Tests:**
 ```python
 # tests/unit/test_scaffold.py
 def test_imports():
     """All modules import without error."""
-    from x_digest import config, fetch, classify, presummary, images, digest, delivery, status, errors
+    from x_digest import config, fetch, classify, models, presummary, images, digest, status, errors
+    from x_digest.llm import base as llm_base
+    from x_digest.delivery import base as delivery_base
     assert True
 ```
 
-**Done when:** `pytest` runs green, all modules import.
+**Done when:** `pytest` runs green, `x-digest --help` works, CI passes on GitHub.
 
 ---
 
@@ -524,32 +585,62 @@ def test_prompt_includes_content():
 
 ---
 
-### Milestone 2.3: LLM Client (Mocked)
+### Milestone 2.3: LLM Provider Interface + Mock
 
-**Goal:** Create Gemini API client with mocking support.
+**Goal:** Create pluggable LLM interface with mock for testing.
 
 **Tasks:**
-- [ ] `GeminiClient` class with `generate(prompt, images=[])` method
-- [ ] `MockGeminiClient` for testing that returns fixture responses
-- [ ] Response parsing (extract text from Gemini response structure)
+- [ ] `LLMProvider` ABC in `llm/base.py` with `generate(prompt, system, images)` and `count_tokens(text)`
+- [ ] `MockLLMProvider` for testing that returns fixture responses
+- [ ] Track calls for assertions
 
 **Unit Tests:**
 ```python
 # tests/unit/test_llm.py
-def test_mock_client_returns_fixture():
-    """Mock client returns configured response."""
-    client = MockGeminiClient(response="Test summary")
-    result = client.generate("any prompt")
+def test_mock_provider_returns_fixture():
+    """Mock provider returns configured response."""
+    provider = MockLLMProvider(response="Test summary")
+    result = provider.generate("any prompt")
     assert result == "Test summary"
 
-def test_mock_client_tracks_calls():
-    """Mock client tracks what was called."""
-    client = MockGeminiClient(response="Summary")
-    client.generate("prompt 1")
-    client.generate("prompt 2")
-    assert len(client.calls) == 2
-    assert client.calls[0]["prompt"] == "prompt 1"
+def test_mock_provider_tracks_calls():
+    """Mock provider tracks what was called."""
+    provider = MockLLMProvider(response="Summary")
+    provider.generate("prompt 1")
+    provider.generate("prompt 2")
+    assert len(provider.calls) == 2
+    assert provider.calls[0]["prompt"] == "prompt 1"
 
+def test_mock_provider_with_images():
+    """Mock provider accepts images."""
+    provider = MockLLMProvider(response="Described image")
+    result = provider.generate("Describe", images=[b"fake_image"])
+    assert result == "Described image"
+    assert provider.calls[0]["images"] == [b"fake_image"]
+
+def test_provider_interface():
+    """LLMProvider ABC enforces interface."""
+    with pytest.raises(TypeError):
+        LLMProvider()  # Can't instantiate abstract class
+```
+
+**Done when:** ABC defined, mock provider works, 4+ tests pass.
+
+---
+
+### Milestone 2.4: Gemini Provider
+
+**Goal:** Implement Gemini-specific LLM provider.
+
+**Tasks:**
+- [ ] `GeminiProvider(LLMProvider)` in `llm/gemini.py`
+- [ ] API request building (text + multimodal)
+- [ ] Response parsing (extract text from Gemini response structure)
+- [ ] Error mapping to `LLMError` codes
+
+**Unit Tests:**
+```python
+# tests/unit/test_llm.py
 def test_parse_gemini_response():
     """Parse actual Gemini response structure."""
     response = {
@@ -559,16 +650,27 @@ def test_parse_gemini_response():
             }
         }]
     }
-    assert parse_gemini_response(response) == "The summary"
+    assert GeminiProvider._parse_response(response) == "The summary"
 
 def test_parse_empty_response_raises():
     """Empty Gemini response raises LLMError."""
     response = {"candidates": []}
     with pytest.raises(LLMError):
-        parse_gemini_response(response)
+        GeminiProvider._parse_response(response)
+
+def test_build_text_payload():
+    """Text-only payload has correct structure."""
+    payload = GeminiProvider._build_payload("prompt text", system="system", images=[])
+    assert payload["contents"][0]["parts"][0]["text"] == "prompt text"
+
+def test_build_multimodal_payload():
+    """Multimodal payload includes images."""
+    payload = GeminiProvider._build_payload("describe", system="", images=[b"img"])
+    parts = payload["contents"][0]["parts"]
+    assert any("inline_data" in p for p in parts)
 ```
 
-**Done when:** Mock client works, response parsing works, 4+ tests pass.
+**Done when:** Gemini provider builds correct payloads, parses responses, 4+ tests pass.
 
 ---
 
@@ -968,49 +1070,139 @@ def test_full_digest_generation():
 
 ## Phase 4: Delivery & Status
 
-### Milestone 4.1: WhatsApp Client (Mocked)
+### Milestone 4.1: Delivery Provider Interface + Mock
 
-**Goal:** Create WhatsApp gateway client with mocking.
+**Goal:** Create pluggable delivery interface with mock.
 
 **Tasks:**
-- [ ] `WhatsAppClient` class with `send(recipient, message)` method
-- [ ] `MockWhatsAppClient` for testing
-- [ ] Parse gateway responses
+- [ ] `DeliveryProvider` ABC in `delivery/base.py` with `send(recipient, message)` and `max_message_length()`
+- [ ] `MockDeliveryProvider` for testing
+- [ ] Provider registry: `get_provider(config)` → provider instance
 
 **Unit Tests:**
 ```python
 # tests/unit/test_delivery.py
-def test_mock_client_returns_success():
-    """Mock client returns success."""
-    client = MockWhatsAppClient(success=True, message_id="123")
-    result = client.send("+1234567890", "test")
+def test_mock_provider_returns_success():
+    """Mock provider returns message ID."""
+    provider = MockDeliveryProvider(success=True, message_id="123")
+    result = provider.send("+1234567890", "test")
     assert result == "123"
 
-def test_mock_client_raises_on_failure():
-    """Mock client raises on failure."""
-    client = MockWhatsAppClient(success=False, error="RATE_LIMITED")
-    with pytest.raises(DeliveryError) as exc:
-        client.send("+1234567890", "test")
-    assert exc.value.code == ErrorCode.WHATSAPP_RATE_LIMITED
+def test_mock_provider_raises_on_failure():
+    """Mock provider raises on failure."""
+    provider = MockDeliveryProvider(success=False, error="RATE_LIMITED")
+    with pytest.raises(DeliveryError):
+        provider.send("+1234567890", "test")
 
-def test_mock_client_tracks_sends():
-    """Mock client tracks what was sent."""
-    client = MockWhatsAppClient(success=True)
-    client.send("+1", "msg1")
-    client.send("+2", "msg2")
-    assert len(client.sends) == 2
+def test_mock_provider_tracks_sends():
+    """Mock provider tracks what was sent."""
+    provider = MockDeliveryProvider(success=True)
+    provider.send("+1", "msg1")
+    provider.send("+2", "msg2")
+    assert len(provider.sends) == 2
+
+def test_provider_interface():
+    """DeliveryProvider ABC enforces interface."""
+    with pytest.raises(TypeError):
+        DeliveryProvider()  # Can't instantiate abstract class
+
+def test_get_provider_whatsapp():
+    """Registry returns WhatsApp provider for whatsapp config."""
+    config = {"provider": "whatsapp", "whatsapp": {"gateway_url": "http://localhost:3420"}}
+    provider = get_provider(config)
+    assert isinstance(provider, WhatsAppProvider)
+
+def test_get_provider_telegram():
+    """Registry returns Telegram provider for telegram config."""
+    config = {"provider": "telegram", "telegram": {"bot_token": "tok", "chat_id": "123"}}
+    provider = get_provider(config)
+    assert isinstance(provider, TelegramProvider)
+
+def test_get_provider_unknown():
+    """Registry raises for unknown provider."""
+    with pytest.raises(ConfigError):
+        get_provider({"provider": "pigeonpost"})
 ```
 
-**Done when:** Mock client works, 3+ tests pass.
+**Done when:** ABC defined, mock works, registry works, 7+ tests pass.
 
 ---
 
-### Milestone 4.2: Delivery with Retry
+### Milestone 4.2: WhatsApp Provider
 
-**Goal:** Send digest parts with retry logic.
+**Goal:** Implement WhatsApp delivery provider.
 
 **Tasks:**
-- [ ] `send_digest(parts, recipient, client, max_retries=3)` → bool
+- [ ] `WhatsAppProvider(DeliveryProvider)` in `delivery/whatsapp.py`
+- [ ] HTTP POST to gateway URL
+- [ ] Response parsing, error mapping
+
+**Unit Tests:**
+```python
+# tests/unit/test_delivery.py
+def test_whatsapp_max_length():
+    """WhatsApp max message length is 4000."""
+    provider = WhatsAppProvider(gateway_url="http://localhost:3420", recipient="+1")
+    assert provider.max_message_length() == 4000
+
+def test_whatsapp_request_format(mock_http):
+    """WhatsApp sends correct request format."""
+    provider = WhatsAppProvider(gateway_url="http://test:3420", recipient="+123")
+    mock_http.post("http://test:3420", json={"success": True, "messageId": "abc"})
+    provider.send("+123", "hello")
+    assert mock_http.last_request.json() == {
+        "channel": "whatsapp", "to": "+123", "message": "hello"
+    }
+```
+
+**Done when:** WhatsApp provider works, 2+ tests pass.
+
+---
+
+### Milestone 4.3: Telegram Provider
+
+**Goal:** Implement Telegram delivery provider.
+
+**Tasks:**
+- [ ] `TelegramProvider(DeliveryProvider)` in `delivery/telegram.py`
+- [ ] Bot API `sendMessage` call
+- [ ] WhatsApp formatting → MarkdownV2 conversion
+- [ ] Long message splitting (Telegram limit: 4096 chars)
+
+**Unit Tests:**
+```python
+# tests/unit/test_delivery.py
+def test_telegram_max_length():
+    """Telegram max message length is 4096."""
+    provider = TelegramProvider(bot_token="tok", chat_id="123")
+    assert provider.max_message_length() == 4096
+
+def test_telegram_format_conversion():
+    """WhatsApp bold converts to Telegram MarkdownV2."""
+    assert TelegramProvider._convert_formatting("*bold text*") == "*bold text*"  # Same in this case
+    assert TelegramProvider._convert_formatting("_italic_") == "_italic_"
+
+def test_telegram_request_format(mock_http):
+    """Telegram sends correct Bot API request."""
+    provider = TelegramProvider(bot_token="tok123", chat_id="456")
+    mock_http.post("https://api.telegram.org/bottok123/sendMessage",
+                   json={"ok": True, "result": {"message_id": 789}})
+    provider.send("456", "hello")
+    req = mock_http.last_request.json()
+    assert req["chat_id"] == "456"
+    assert req["text"] == "hello"
+```
+
+**Done when:** Telegram provider works, 3+ tests pass.
+
+---
+
+### Milestone 4.4: Delivery with Retry
+
+**Goal:** Send digest parts with retry logic (works with any provider).
+
+**Tasks:**
+- [ ] `send_digest(parts, provider, max_retries=3)` → bool
 - [ ] Retry failed parts with exponential backoff
 - [ ] Return False if any part fails after retries
 
@@ -1019,43 +1211,43 @@ def test_mock_client_tracks_sends():
 # tests/unit/test_delivery.py
 def test_send_all_parts_success():
     """All parts sent successfully."""
-    client = MockWhatsAppClient(success=True)
+    provider = MockDeliveryProvider(success=True)
     parts = ["part 1", "part 2", "part 3"]
-    result = send_digest(parts, "+1234567890", client)
+    result = send_digest(parts, provider)
     assert result is True
-    assert len(client.sends) == 3
+    assert len(provider.sends) == 3
 
 def test_retry_on_failure():
     """Failed send is retried."""
     # Fail twice, then succeed
-    client = MockWhatsAppClient(fail_count=2)
+    provider = MockDeliveryProvider(fail_count=2)
     parts = ["part 1"]
-    result = send_digest(parts, "+1234567890", client, max_retries=3)
+    result = send_digest(parts, provider, max_retries=3)
     assert result is True
-    assert len(client.sends) == 3  # 2 failures + 1 success
+    assert len(provider.sends) == 3  # 2 failures + 1 success
 
 def test_give_up_after_max_retries():
     """Give up after max retries exceeded."""
-    client = MockWhatsAppClient(success=False)
+    provider = MockDeliveryProvider(success=False)
     parts = ["part 1"]
-    result = send_digest(parts, "+1234567890", client, max_retries=3)
+    result = send_digest(parts, provider, max_retries=3)
     assert result is False
-    assert len(client.sends) == 3
+    assert len(provider.sends) == 3
 
 def test_partial_failure_returns_false():
     """If any part fails, whole delivery fails."""
     # First part succeeds, second fails permanently
-    client = MockWhatsAppClient(fail_on_message=["part 2"])
+    provider = MockDeliveryProvider(fail_on_message=["part 2"])
     parts = ["part 1", "part 2"]
-    result = send_digest(parts, "+1234567890", client, max_retries=3)
+    result = send_digest(parts, provider, max_retries=3)
     assert result is False
 ```
 
-**Done when:** Retry logic works, 4+ tests pass.
+**Done when:** Retry logic works with any provider, 4+ tests pass.
 
 ---
 
-### Milestone 4.3: Idempotency Check
+### Milestone 4.5: Idempotency Check
 
 **Goal:** Prevent duplicate runs within time window.
 
@@ -1088,7 +1280,7 @@ def test_should_not_run_within_window():
 
 ---
 
-### Milestone 4.4: Time Window Calculation
+### Milestone 4.6: Time Window Calculation
 
 **Goal:** Calculate fetch window based on last success.
 
@@ -1126,7 +1318,7 @@ def test_time_window_end_is_now():
 
 ---
 
-### Milestone 4.5: Meta File Writing
+### Milestone 4.7: Meta File Writing
 
 **Goal:** Write meta.json with run metrics.
 
@@ -1299,26 +1491,108 @@ def test_full_pipeline_e2e():
 
 ## Phase 6: CLI & Polish
 
-### Milestone 6.1: Argument Parsing
+### Milestone 6.1: CLI Entry Point & Argument Parsing
+
+**Goal:** Full CLI with subcommands.
 
 **Tasks:**
-- [ ] `--list`, `--dry-run`, `--preview`, `--force`
-- [ ] `--validate-config`, `--generate-crontab`
-- [ ] `--test-recipient`
+- [ ] Subcommand structure: `run`, `watch`, `validate`, `crontab`, `onboard`
+- [ ] `run`: `--list`, `--dry-run`, `--preview`, `--force`, `--test-recipient`
+- [ ] `watch`: `--list`, `--every` (parse durations like `12h`, `30m`)
+- [ ] `validate`: no args, reads config
+- [ ] `crontab`: generate crontab from config
+- [ ] Config file search: `./x-digest-config.json` → `~/.config/x-digest/config.json` → `--config`
 
-### Milestone 6.2: Logging
+**Unit Tests:**
+```python
+# tests/unit/test_cli.py
+def test_parse_run_command():
+    """Parse run command with flags."""
+    args = parse_args(["run", "--list", "ai-dev", "--dry-run"])
+    assert args.command == "run"
+    assert args.list == "ai-dev"
+    assert args.dry_run is True
+
+def test_parse_watch_command():
+    """Parse watch command with interval."""
+    args = parse_args(["watch", "--list", "ai-dev", "--every", "12h"])
+    assert args.command == "watch"
+    assert args.every_seconds == 43200
+
+def test_parse_duration():
+    """Duration strings parsed correctly."""
+    assert parse_duration("12h") == 43200
+    assert parse_duration("30m") == 1800
+    assert parse_duration("1h30m") == 5400
+```
+
+**Done when:** CLI commands parse correctly, `x-digest --help` shows subcommands, 3+ tests pass.
+
+---
+
+### Milestone 6.2: Watch Mode
+
+**Goal:** Run digests on an interval without cron.
+
+**Tasks:**
+- [ ] `watch_loop(list_name, interval_seconds, config)` — runs in foreground
+- [ ] Respects idempotency (skips if recent run)
+- [ ] Clean Ctrl+C handling
+- [ ] Logs next run time
+
+**Unit Tests:**
+```python
+# tests/unit/test_watch.py
+def test_watch_calculates_next_run():
+    """Watch mode calculates correct next run time."""
+    next_run = calculate_next_run(interval_seconds=3600, last_run=datetime.now(UTC))
+    expected = datetime.now(UTC) + timedelta(hours=1)
+    assert abs((next_run - expected).total_seconds()) < 2
+
+def test_watch_skips_if_recent(mock_pipeline):
+    """Watch mode skips if digest ran recently."""
+    # Simulate recent run
+    mock_pipeline.last_run = datetime.now(UTC) - timedelta(minutes=5)
+    result = watch_tick("ai-dev", mock_pipeline, window_minutes=30)
+    assert result == "skipped"
+```
+
+**Done when:** Watch mode runs, respects idempotency, 2+ tests pass.
+
+---
+
+### Milestone 6.3: Logging
 
 **Tasks:**
 - [ ] Rotating file logger (5MB max)
 - [ ] Configurable log level
-- [ ] Structured log format
+- [ ] Structured log format with timestamps
 
-### Milestone 6.3: Crontab Generation
+---
+
+### Milestone 6.4: Crontab Generation
 
 **Tasks:**
 - [ ] Parse schedules from config
-- [ ] Output valid crontab syntax
+- [ ] Output valid crontab syntax using `x-digest run` commands
 - [ ] Stale crontab detection
+
+**Unit Tests:**
+```python
+# tests/unit/test_cli.py
+def test_crontab_generation():
+    """Crontab output is valid."""
+    config = {
+        "schedules": [
+            {"name": "morning", "list": "ai-dev", "cron": "0 12 * * *"}
+        ]
+    }
+    output = generate_crontab(config)
+    assert "0 12 * * *" in output
+    assert "x-digest run --list ai-dev" in output
+```
+
+**Done when:** Crontab generation works, 1+ test passes.
 
 ---
 
@@ -1369,13 +1643,13 @@ pytest tests/ --cov=x_digest --cov-report=html
 | Phase | Milestones | Focus |
 |-------|------------|-------|
 | 1 | 1.1 - 1.8 | Foundation (no external services) |
-| 2 | 2.1 - 2.6 | Pre-processing (mocked LLM) |
+| 2 | 2.1 - 2.6 | Pre-processing (pluggable LLM, mocked) |
 | 3 | 3.1 - 3.5 | Digest generation (mocked LLM) |
-| 4 | 4.1 - 4.5 | Delivery & status |
+| 4 | 4.1 - 4.7 | Delivery (pluggable) & status |
 | 5 | 5.1 - 5.3 | External integration |
-| 6 | 6.1 - 6.3 | CLI & polish |
+| 6 | 6.1 - 6.4 | CLI, watch mode, & polish |
 
-**Total: ~25 milestones, each 1-2 hours**
+**Total: ~30 milestones, each 1-2 hours**
 
 Each milestone has:
 - Clear goal
@@ -1384,3 +1658,16 @@ Each milestone has:
 - "Done when" criteria
 
 Integration tests run at phase boundaries to verify modules work together.
+
+### Open Source Decisions
+
+| Decision | Choice |
+|----------|--------|
+| Delivery | Pluggable — WhatsApp + Telegram from day one |
+| LLM | Pluggable interface, Gemini only for now |
+| Twitter source | bird CLI only, well-documented install |
+| Config | Smart defaults, minimal required (list ID + API key) |
+| Scheduling | Cron for production, `--watch` for easy testing |
+| Packaging | pip-installable via pyproject.toml |
+| CI | GitHub Actions from day one |
+| License | MIT |

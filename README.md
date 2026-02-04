@@ -40,4 +40,4 @@ python3 scripts/x-digest.py --list your-list --dry-run
 
 ## License
 
-Private
+MIT

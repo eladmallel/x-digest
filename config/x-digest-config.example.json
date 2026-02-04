@@ -1,10 +1,11 @@
 {
   "version": 1,
   "defaults": {
-    "external_llm": {
+    "llm": {
       "provider": "gemini",
       "model": "gemini-2.0-flash"
     },
+    "timezone": "America/New_York",
     "token_limits": {
       "max_input_tokens": 100000,
       "max_output_tokens": 4000,
@@ -17,6 +18,17 @@
       "long_combined_chars": 600,
       "thread_min_tweets": 2,
       "max_summary_tokens": 300
+    }
+  },
+  "delivery": {
+    "provider": "whatsapp",
+    "whatsapp": {
+      "gateway_url": "http://localhost:3420/api/message/send",
+      "recipient": "+1234567890"
+    },
+    "telegram": {
+      "bot_token": "YOUR_BOT_TOKEN",
+      "chat_id": "YOUR_CHAT_ID"
     }
   },
   "lists": {
@@ -41,9 +53,5 @@
     "initial_delay_seconds": 2,
     "backoff_multiplier": 2,
     "max_delay_seconds": 30
-  },
-  "whatsapp": {
-    "max_length": 4000,
-    "split_if_longer": true
   }
 }
