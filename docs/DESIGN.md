@@ -606,21 +606,31 @@ Adjust thresholds in config:
 
 ### Status File Schema
 
+Tracks each list separately so monitoring can detect issues per-list:
+
 ```json
 {
-  "last_run": {
-    "timestamp": "2026-02-04T12:00:00Z",
-    "list": "ai-dev",
-    "success": true,
-    "tweets_fetched": 47,
-    "pre_summaries": 3,
-    "digest_tokens": 2847,
-    "error_code": null
+  "lists": {
+    "ai-dev": {
+      "last_run": "2026-02-04T12:00:00Z",
+      "last_success": "2026-02-04T12:00:00Z",
+      "tweets_fetched": 47,
+      "consecutive_failures": 0,
+      "error_code": null
+    },
+    "investing": {
+      "last_run": "2026-02-04T00:00:00Z",
+      "last_success": "2026-02-04T00:00:00Z",
+      "tweets_fetched": 32,
+      "consecutive_failures": 0,
+      "error_code": null
+    }
   },
-  "consecutive_failures": 0,
   "cookie_status": "ok"
 }
 ```
+
+This allows monitoring to check each list's health independently — if `ai-dev` fails but `investing` succeeds, both states are preserved.
 
 ### Monitoring Alerts
 
@@ -661,14 +671,12 @@ Implementation will analyze the saved `digest.md` and `raw-tweets.json` files in
 
 Remaining items to resolve:
 
-1. **Per-list status tracking**: Should status.json track each list separately for better monitoring?
+1. **Output format**: What does the final WhatsApp digest actually look like? Show an example.
 
-2. **Output format**: What does the final WhatsApp digest actually look like? Show an example.
+2. **Handling Hebrew/RTL**: Any special handling needed for Hebrew tweets in digests?
 
-3. **Handling Hebrew/RTL**: Any special handling needed for Hebrew tweets in digests?
-
-4. **Skip pre-summarization option**: Should we add `skip_pre_summarization` for lists with typically short content?
+3. **Skip pre-summarization option**: Should we add `skip_pre_summarization` for lists with typically short content?
 
 ---
 
-*Design doc v2.1 — Added digest prompt, data storage architecture, future features*
+*Design doc v2.2 — Added per-list status tracking*
