@@ -129,6 +129,21 @@ def classify_thread_completeness(tweets: list[Tweet]) -> str:
 
 This preserves value from partial threads while being honest about what we have.
 
+**Quote tweet deduplication:** If tweet A quotes tweet B, and both are in the same batch:
+
+```python
+def dedupe_quotes(tweets: list[Tweet]) -> list[Tweet]:
+    """Remove standalone tweets that are quoted by another tweet in the batch."""
+    tweet_ids = {t.id for t in tweets}
+    quoted_ids = {t.quotedTweet.id for t in tweets if t.quotedTweet}
+    
+    # Keep tweets that are NOT quoted by another tweet in this batch
+    # (the quote tweet will include the quoted content)
+    return [t for t in tweets if t.id not in quoted_ids or t.id not in tweet_ids]
+```
+
+This prevents showing the same content twice (once standalone, once as quoted). The quote tweet wins because it adds the quoter's commentary.
+
 ### Step 2: Pre-Processing (Text + Images)
 
 Not all tweets are equal. A single hot take fits in a sentence. A 15-tweet thread needs compression. An image-heavy tweet needs visual context. Pre-processing handles this elegantly.
@@ -232,8 +247,12 @@ import base64
 def fetch_and_encode_image(url: str) -> dict:
     """Download image and encode for Gemini API."""
     response = requests.get(url)
+    
+    # Detect MIME type from response headers (Twitter URLs often lack extensions)
+    content_type = response.headers.get("Content-Type", "image/jpeg")
+    mime_type = content_type.split(";")[0].strip()  # Strip charset if present
+    
     img_base64 = base64.b64encode(response.content).decode('utf-8')
-    mime_type = "image/jpeg" if url.endswith(".jpg") else "image/png"
     
     return {
         "inline_data": {
@@ -269,6 +288,25 @@ response = requests.post(url, json=payload)
 Token cost is ~1,800-1,900 regardless of file size — Gemini normalizes images internally.
 
 **Why this matters:** The multimodal LLM can understand screenshots, diagrams, charts, and memes that are often central to technical tweets. A code screenshot or architecture diagram often contains more signal than the tweet text itself.
+
+#### Video Handling
+
+Videos are **not** sent to the LLM. Instead:
+
+1. **Thumbnail only** — Use `previewUrl` (the video thumbnail) as a static image
+2. **Note in payload** — Mark as "[Video thumbnail]" so LLM knows it's not the full content
+3. **Include duration** — Add video length if available (e.g., "[Video: 2:34]")
+
+```python
+def process_media(media: Media) -> dict:
+    if media.type == "photo":
+        return {"url": media.url, "label": None}
+    elif media.type == "video":
+        duration = format_duration(media.durationMs) if media.durationMs else "unknown"
+        return {"url": media.previewUrl, "label": f"[Video: {duration}]"}
+```
+
+This keeps the pipeline simple (no video processing) while preserving context about what the tweet contains.
 
 ### Step 3: Digest Generation
 
@@ -327,14 +365,14 @@ def generate_digest(tweets: list[Tweet]) -> str:
 
 **Empty digest (0 tweets):**
 ```
-🤖 *AI & Dev Digest* — Feb 4, 2026 (Evening)
+🤖 *AI & Dev Digest* — Feb 4, 2026
 
 📭 *Quiet period* — No new tweets since last digest.
 ```
 
 **Sparse digest (<5 tweets) — no LLM call, just formatting:**
 ```
-🤖 *AI & Dev Digest* — Feb 4, 2026 (Evening)
+🤖 *AI & Dev Digest* — Feb 4, 2026
 
 📋 *3 tweets since last digest:*
 
@@ -405,7 +443,7 @@ Common list-specific customizations:
 Here's what a typical digest looks like on WhatsApp:
 
 ```
-🤖 *AI & Dev Digest* — Feb 4, 2026 (Morning)
+🤖 *AI & Dev Digest* — Feb 4, 2026
 
 🔥 *Top*
 
@@ -519,9 +557,34 @@ This ensures items are never cut mid-sentence, and related content stays togethe
 
 - Python 3.11+
 - [uv](https://github.com/astral-sh/uv) package manager
-- [bird CLI](https://github.com/openclaw/bird) with valid Twitter cookies
+- [bird CLI](https://github.com/openclaw/bird) with valid Twitter cookies (see below)
 - Gemini API key (for multimodal LLM)
 - OpenClaw gateway running (for WhatsApp delivery)
+
+#### Twitter Authentication (bird CLI)
+
+bird requires Twitter session cookies to fetch data. On a VPS without a browser, set cookies manually:
+
+```bash
+# Create bird config directory
+mkdir -p ~/.config/bird
+
+# Create env file with your cookies (get these from browser DevTools)
+cat > ~/.config/bird/env << 'EOF'
+export TWITTER_AUTH_TOKEN=your_auth_token_here
+export TWITTER_CT0=your_ct0_token_here
+EOF
+
+# Source before running bird
+source ~/.config/bird/env
+```
+
+**To get cookies from your browser:**
+1. Log into Twitter/X in your browser
+2. Open DevTools → Application → Cookies → x.com
+3. Copy `auth_token` and `ct0` values
+
+Cookies typically expire every 1-2 weeks. When bird starts failing with auth errors, refresh the cookies.
 
 ### Installation
 
@@ -851,12 +914,24 @@ status["error_code"] = "BIRD_RATE_LIMITED"  # From enum
 
 ```python
 ERROR_CODES = {
+    # Twitter/bird errors
     "BIRD_AUTH_FAILED": "Twitter authentication failed",
     "BIRD_RATE_LIMITED": "Twitter rate limit hit", 
     "BIRD_NETWORK_ERROR": "Network error fetching tweets",
+    
+    # LLM errors
     "LLM_API_AUTH": "LLM API authentication failed",
+    "LLM_RATE_LIMITED": "LLM API rate limit hit",
+    "LLM_TIMEOUT": "LLM API request timed out",
     "LLM_EMPTY_RESPONSE": "LLM returned empty response",
+    
+    # Media errors
+    "IMAGE_DOWNLOAD_FAILED": "Failed to download image(s)",
+    
+    # Delivery errors
     "WHATSAPP_SEND_FAILED": "Failed to send WhatsApp message",
+    
+    # Generic
     "SCRIPT_EXCEPTION": "Unhandled exception in script",
 }
 ```
@@ -923,7 +998,7 @@ Adjust thresholds in config:
 }
 ```
 
-- GPT-4o-mini supports 128k context; we use 100k as a safe limit
+- Gemini 2.0 Flash supports 1M context; we use 100k as a practical limit (cost/latency)
 - With pre-summarization, hitting this limit is rare
 - If exceeded: oldest tweets are dropped (logged as warning)
 
@@ -1050,9 +1125,3 @@ Pattern recognition across daily digests:
 - Emerging themes that weren't obvious day-to-day
 
 Implementation will analyze the saved `digest.md` and `raw-tweets.json` files in `data/digests/`. The hierarchical folder structure (year/month/week/day) enables efficient date-range queries.
-
----
-
----
-
-*Design doc v3.1 — Added Gemini API integration details*
