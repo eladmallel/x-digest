@@ -711,12 +711,6 @@ Implementation will analyze the saved `digest.md` and `raw-tweets.json` files in
 
 ---
 
-## Open Questions (TODOs)
-
-Remaining items to resolve:
-
-1. **Skip pre-summarization option**: Should we add `skip_pre_summarization` for lists with typically short content?
-
 ---
 
-*Design doc v2.4 — Added non-English content handling*
+*Design doc v2.5 — All TODOs resolved*
