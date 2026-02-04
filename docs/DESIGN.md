@@ -96,6 +96,39 @@ interface Media {
 
 **Thread reconstruction:** Tweets in the same thread share `conversationId`. Sort by `createdAt` and link via `inReplyToStatusId` to reconstruct order.
 
+**Incomplete threads:** Sometimes only part of a thread is fetched (author of earlier tweets isn't in the list, or tweets fall outside the time window). Handle gracefully:
+
+```python
+def classify_thread_completeness(tweets: list[Tweet]) -> str:
+    """Determine if we have a complete thread or partial."""
+    thread_tweets = [t for t in tweets if t.conversationId == thread_id]
+    
+    # Check if we have the root
+    has_root = any(t.id == t.conversationId for t in thread_tweets)
+    
+    # Check for gaps (inReplyToStatusId points to missing tweet)
+    reply_targets = {t.inReplyToStatusId for t in thread_tweets if t.inReplyToStatusId}
+    our_ids = {t.id for t in thread_tweets}
+    has_gaps = bool(reply_targets - our_ids - {None})
+    
+    if has_root and not has_gaps:
+        return "complete"
+    elif has_root:
+        return "partial_with_root"  # Have start, missing middle/end
+    else:
+        return "partial_no_root"    # Jumped into middle of thread
+```
+
+**Handling strategy:**
+
+| Completeness | Handling |
+|--------------|----------|
+| `complete` | Full thread reconstruction, pre-summarize as unit |
+| `partial_with_root` | Treat as complete thread, note "[thread continues]" |
+| `partial_no_root` | Include individual tweets, note "[part of thread by @author]" |
+
+This preserves value from partial threads while being honest about what we have.
+
 ### Step 2: Pre-Processing (Text + Images)
 
 Not all tweets are equal. A single hot take fits in a sentence. A 15-tweet thread needs compression. An image-heavy tweet needs visual context. Pre-processing handles this elegantly.
@@ -123,6 +156,8 @@ Not all tweets are equal. A single hot take fits in a sentence. A 15-tweet threa
                           ▼
                   Combined payload
 ```
+
+**Model:** Pre-summarization uses the same Gemini model as digest generation (configured in `defaults.external_llm`). This keeps the pipeline simple — one model, one API key, consistent behavior.
 
 **What triggers text pre-summarization:**
 - Tweet text > 500 characters
@@ -403,6 +438,8 @@ Non-English tweets are **translated to English** with a language tag:
 *[Hebrew] Ori on Israeli AI talent* — Discusses challenges Israeli startups face retaining AI talent against US offers. @ori_cohen https://x.com/ori_cohen/status/123
 ```
 
+**Language detection:** Handled entirely by the digest LLM. Twitter's `lang` field is unreliable (often wrong for mixed-language tweets or transliteration). The LLM naturally recognizes languages during processing and applies the tag. No preprocessing step needed.
+
 Why translate rather than preserve original:
 - Consistent LTR reading flow (WhatsApp RTL rendering is inconsistent)
 - Quick scanning without language context-switching
@@ -411,10 +448,68 @@ Why translate rather than preserve original:
 
 ### Step 4: Delivery
 
-The formatted digest is sent via WhatsApp through the OpenClaw gateway API. If the digest exceeds 4000 characters, it's automatically split into multiple messages with part indicators (1/3, 2/3, 3/3).
+The formatted digest is sent via WhatsApp through the OpenClaw gateway API.
 
 **WhatsApp formatting supported:** `*bold*`, `_italic_`, `~strikethrough~`, ``` `code` ```  
 **Not supported:** Headers, clickable link text (use plain URLs)
+
+#### Message Splitting
+
+WhatsApp has a ~4096 character limit per message. Long digests are split intelligently:
+
+```python
+MAX_MESSAGE_LENGTH = 4000  # Leave buffer for safety
+
+def split_digest(digest: str) -> list[str]:
+    """Split digest at section boundaries, never mid-item."""
+    if len(digest) <= MAX_MESSAGE_LENGTH:
+        return [digest]
+    
+    # Split points in priority order
+    split_markers = [
+        "\n\n🔥",    # Major section (Top)
+        "\n\n💡",    # Major section (Worth Noting)
+        "\n\n🚀",    # Topical section
+        "\n\n🛠️",    # Topical section
+        "\n\n📜",    # Topical section
+        "\n\n*",     # Any bold item start
+        "\n\n",      # Paragraph break (fallback)
+    ]
+    
+    parts = []
+    remaining = digest
+    
+    while len(remaining) > MAX_MESSAGE_LENGTH:
+        # Find best split point before limit
+        split_at = None
+        for marker in split_markers:
+            # Search backwards from limit
+            idx = remaining.rfind(marker, 0, MAX_MESSAGE_LENGTH)
+            if idx > 0:
+                split_at = idx
+                break
+        
+        if split_at is None:
+            # Emergency: hard split at limit (shouldn't happen with good formatting)
+            split_at = MAX_MESSAGE_LENGTH
+        
+        parts.append(remaining[:split_at].rstrip())
+        remaining = remaining[split_at:].lstrip()
+    
+    if remaining:
+        parts.append(remaining)
+    
+    # Add part indicators
+    if len(parts) > 1:
+        total = len(parts)
+        parts = [f"{p}\n\n_({i+1}/{total})_" for i, p in enumerate(parts)]
+    
+    return parts
+```
+
+**Split priority:** Section headers (🔥, 💡, etc.) → bold item starts → paragraph breaks → hard split (last resort)
+
+This ensures items are never cut mid-sentence, and related content stays together.
 
 ---
 
@@ -463,6 +558,9 @@ python3 scripts/x-digest.py --list your-list --dry-run
 
 # Send for real
 python3 scripts/x-digest.py --list your-list
+
+# Force run (bypass idempotency check)
+python3 scripts/x-digest.py --list your-list --force
 ```
 
 ---
@@ -574,6 +672,9 @@ python3 scripts/x-digest.py --generate-crontab
 
 # Onboard a new list with LLM assistance
 python3 scripts/x-digest.py --onboard-list <list-id> --name <short-name>
+
+# Force run (bypass idempotency check)
+python3 scripts/x-digest.py --list <list-name> --force
 ```
 
 ---
@@ -667,6 +768,8 @@ data/
 | Gemini API | Multimodal LLM for summarization + digest | API key in `.env` |
 | OpenClaw gateway | WhatsApp message delivery | Local HTTP API |
 
+**Cookie lifetime:** Twitter cookies typically last 1-2 weeks before requiring refresh. The monitoring job detects `BIRD_AUTH_FAILED` errors and alerts with refresh instructions. No proactive expiry detection — we handle it reactively when it fails.
+
 ### Scheduling
 
 Schedules are defined in config and converted to system crontab:
@@ -678,10 +781,23 @@ python3 scripts/x-digest.py --generate-crontab | sudo tee /etc/cron.d/x-digest
 
 **Never edit the crontab manually** — always regenerate from config to keep them in sync.
 
+**Timezone handling:** Cron runs in UTC (server time). Display times in digest headers (e.g., "7:00 AM – 7:00 PM EST") are converted from UTC at format time using Python's `zoneinfo`. The target timezone is configured per-list or falls back to a global default:
+
+```json
+"defaults": {
+  "timezone": "America/New_York"
+},
+"lists": {
+  "israel-tech": {
+    "timezone": "Asia/Jerusalem"
+  }
+}
+```
+
 ### Monitoring
 
 OpenClaw runs a separate cron job (every 2 hours) that:
-1. Reads `data/x-digest-status.json`
+1. Reads `data/status.json`
 2. Checks for missed runs, failures, stale cookies
 3. Sends alerts if issues detected
 
@@ -815,6 +931,35 @@ Adjust thresholds in config:
 
 ## Error Handling & Reliability
 
+### Idempotency
+
+What if the script runs twice accidentally (manual + cron overlap, server time drift)?
+
+```python
+IDEMPOTENCY_WINDOW_MINUTES = 30
+
+def should_run(list_name: str) -> bool:
+    """Prevent duplicate runs within idempotency window."""
+    status = load_status()
+    last_run = status["lists"].get(list_name, {}).get("last_run")
+    
+    if not last_run:
+        return True
+    
+    last_run_time = parse_iso(last_run)
+    minutes_since = (datetime.now(UTC) - last_run_time).total_seconds() / 60
+    
+    if minutes_since < IDEMPOTENCY_WINDOW_MINUTES:
+        log.info(f"Skipping {list_name}: ran {minutes_since:.0f}m ago (within {IDEMPOTENCY_WINDOW_MINUTES}m window)")
+        return False
+    
+    return True
+```
+
+The script checks `last_run` before executing. If a run completed within the idempotency window (30 min default), the new run exits cleanly with a log message. This prevents duplicate digests without requiring distributed locking.
+
+**Override:** `--force` flag bypasses the idempotency check for manual reruns.
+
 ### Retry Policy
 
 ```json
@@ -834,6 +979,8 @@ Adjust thresholds in config:
 **Not retried:**
 - ❌ Config file read errors (fatal)
 - ❌ Status file write errors (fatal)
+
+**Pre-summarization failures:** Each pre-summarization is retried up to `max_attempts` (default 3) before giving up. If all retries fail for a tweet, that tweet is included unsummarized with a note in the payload: "[summary failed — original text]". The digest continues. Only if >50% of pre-summarizations fail completely does the whole run fail.
 
 ### Timeouts
 
