@@ -1636,16 +1636,16 @@ Development follows small, testable milestones. Each milestone must pass its tes
 **Goal:** Fetch tweets from a Twitter list and save raw JSON.
 
 **Implementation:**
-- [ ] `fetch_tweets(list_id, since)` function
-- [ ] bird CLI integration with cookie env sourcing
-- [ ] Save raw JSON to `data/digests/.../raw-tweets.json`
-- [ ] Error handling for auth/rate-limit/network failures
+- [x] `fetch_tweets(list_id, since)` function
+- [x] bird CLI integration with cookie env sourcing
+- [x] Save raw JSON to `data/digests/.../raw-tweets.json`
+- [x] Error handling for auth/rate-limit/network failures
 
 **Tests:**
-- [ ] Mock bird CLI output, verify JSON parsing
-- [ ] Test time window calculation (since last success)
-- [ ] Test error code mapping (auth failure → `BIRD_AUTH_FAILED`)
-- [ ] Test with sample fixtures: empty list, single tweet, 50 tweets
+- [x] Mock bird CLI output, verify JSON parsing
+- [x] Test time window calculation (since last success)
+- [x] Test error code mapping (auth failure → `BIRD_AUTH_FAILED`)
+- [x] Test with sample fixtures: empty list, single tweet, 50 tweets
 
 **Acceptance:** Can run `--list ai-dev --preview` and see fetched tweet count + sample.
 
@@ -1656,16 +1656,16 @@ Development follows small, testable milestones. Each milestone must pass its tes
 **Goal:** Classify tweets (standalone, thread, quote, retweet) and reconstruct threads.
 
 **Implementation:**
-- [ ] `classify_tweet(tweet)` → type enum
-- [ ] `reconstruct_threads(tweets)` → grouped by conversation
-- [ ] `dedupe_quotes(tweets)` → remove quoted tweets that appear standalone
-- [ ] Handle partial threads gracefully
+- [x] `classify_tweet(tweet)` → type enum
+- [x] `reconstruct_threads(tweets)` → grouped by conversation
+- [x] `dedupe_quotes(tweets)` → remove quoted tweets that appear standalone
+- [x] Handle partial threads gracefully
 
 **Tests:**
-- [ ] Fixture: standalone tweet → classified correctly
-- [ ] Fixture: 5-tweet thread → reconstructed in order
-- [ ] Fixture: quote + quoted both in batch → quoted removed
-- [ ] Fixture: partial thread (missing root) → handled with note
+- [x] Fixture: standalone tweet → classified correctly
+- [x] Fixture: 5-tweet thread → reconstructed in order
+- [x] Fixture: quote + quoted both in batch → quoted removed
+- [x] Fixture: partial thread (missing root) → handled with note
 
 **Acceptance:** Can run `--preview` and see correct thread grouping in output.
 
@@ -1676,18 +1676,18 @@ Development follows small, testable milestones. Each milestone must pass its tes
 **Goal:** Summarize long tweets/threads before digest generation.
 
 **Implementation:**
-- [ ] `should_presummarize(tweet)` → bool (length/thread checks)
-- [ ] `presummarize(content)` → Gemini API call
-- [ ] Retry logic with exponential backoff
-- [ ] Save pre-summaries to `pre-summaries.json`
-- [ ] Graceful failure (use original if summary fails)
+- [x] `should_presummarize(tweet)` → bool (length/thread checks)
+- [x] `presummarize(content)` → Gemini API call
+- [x] Retry logic with exponential backoff
+- [x] Save pre-summaries to `pre-summaries.json`
+- [x] Graceful failure (use original if summary fails)
 
 **Tests:**
-- [ ] Short tweet → not pre-summarized
-- [ ] 800-char tweet → pre-summarized
-- [ ] 5-tweet thread → pre-summarized as unit
-- [ ] Mock Gemini failure → falls back to original
-- [ ] Verify token counting accuracy
+- [x] Short tweet → not pre-summarized
+- [x] 800-char tweet → pre-summarized
+- [x] 5-tweet thread → pre-summarized as unit
+- [x] Mock Gemini failure → falls back to original
+- [x] Verify token counting accuracy
 
 **Acceptance:** Can run `--preview` and see "[pre-summarized]" markers on long content.
 
@@ -1698,16 +1698,16 @@ Development follows small, testable milestones. Each milestone must pass its tes
 **Goal:** Prioritize and prepare images for multimodal LLM.
 
 **Implementation:**
-- [ ] `prioritize_images(tweets)` → URLs with per-tweet cap
-- [ ] `fetch_and_encode_image(url)` → base64 for Gemini
-- [ ] Overflow handling (describe excess images)
-- [ ] Video thumbnail extraction
+- [x] `prioritize_images(tweets)` → URLs with per-tweet cap
+- [x] `fetch_and_encode_image(url)` → base64 for Gemini
+- [x] Overflow handling (describe excess images)
+- [x] Video thumbnail extraction
 
 **Tests:**
-- [ ] 10 images from one tweet → capped to 3
-- [ ] 20 total images → top 15 by engagement
-- [ ] Image download failure → graceful skip
-- [ ] Video → thumbnail only with duration note
+- [x] 10 images from one tweet → capped to 3
+- [x] 20 total images → top 15 by engagement
+- [x] Image download failure → graceful skip
+- [x] Video → thumbnail only with duration note
 
 **Acceptance:** Can run `--preview` and see image count + overflow warnings.
 
@@ -1718,18 +1718,18 @@ Development follows small, testable milestones. Each milestone must pass its tes
 **Goal:** Generate formatted digest from preprocessed content.
 
 **Implementation:**
-- [ ] `build_payload(tweets, summaries, images)` → structured markdown
-- [ ] `generate_digest(payload)` → Gemini multimodal call
-- [ ] System prompt with sections and formatting rules
-- [ ] Handle sparse feeds (< 5 tweets → raw format)
-- [ ] Save prompt.md and digest.md
+- [x] `build_payload(tweets, summaries, images)` → structured markdown
+- [x] `generate_digest(payload)` → Gemini multimodal call
+- [x] System prompt with sections and formatting rules
+- [x] Handle sparse feeds (< 5 tweets → raw format)
+- [x] Save prompt.md and digest.md
 
 **Tests:**
-- [ ] 0 tweets → empty digest message
-- [ ] 3 tweets → raw formatted (no LLM)
-- [ ] 50 tweets → full LLM digest with sections
-- [ ] Mock Gemini response → verify output format
-- [ ] Non-English content → translated with tag
+- [x] 0 tweets → empty digest message
+- [x] 3 tweets → raw formatted (no LLM)
+- [x] 50 tweets → full LLM digest with sections
+- [x] Mock Gemini response → verify output format
+- [x] Non-English content → translated with tag
 
 **Acceptance:** Can run `--dry-run` and see formatted digest in stdout.
 
@@ -1740,16 +1740,16 @@ Development follows small, testable milestones. Each milestone must pass its tes
 **Goal:** Send digest to WhatsApp with splitting and retry.
 
 **Implementation:**
-- [ ] `split_digest(text)` → parts at section boundaries
-- [ ] `send_digest_parts(parts, recipient)` → with retry
-- [ ] Part numbering (1/4, 2/4, etc.)
-- [ ] Partial failure → whole digest fails
+- [x] `split_digest(text)` → parts at section boundaries
+- [x] `send_digest_parts(parts, recipient)` → with retry
+- [x] Part numbering (1/4, 2/4, etc.)
+- [x] Partial failure → whole digest fails
 
 **Tests:**
-- [ ] Short digest → single message
-- [ ] 6000-char digest → split into 2 parts
-- [ ] Mock gateway failure → retry 3x then fail
-- [ ] Part 2 fails after retries → entire digest marked failed
+- [x] Short digest → single message
+- [x] 6000-char digest → split into 2 parts
+- [x] Mock gateway failure → retry 3x then fail
+- [x] Part 2 fails after retries → entire digest marked failed
 
 **Acceptance:** Can run `--list ai-dev` and receive digest on WhatsApp.
 
@@ -1760,16 +1760,16 @@ Development follows small, testable milestones. Each milestone must pass its tes
 **Goal:** Track run status and enable monitoring alerts.
 
 **Implementation:**
-- [ ] `update_status(list, success, error_code)` with file locking
-- [ ] `load_status()` for time window calculation
-- [ ] Idempotency check (skip if ran within 30 min)
-- [ ] Save meta.json with full metrics
+- [x] `update_status(list, success, error_code)` with file locking
+- [x] `load_status()` for time window calculation
+- [x] Idempotency check (skip if ran within 30 min)
+- [x] Save meta.json with full metrics
 
 **Tests:**
-- [ ] Successful run → updates `last_success`
-- [ ] Failed run → `last_success` unchanged, `error_code` set
-- [ ] Run twice quickly → second skipped (idempotency)
-- [ ] Concurrent runs → no file corruption (locking)
+- [x] Successful run → updates `last_success`
+- [x] Failed run → `last_success` unchanged, `error_code` set
+- [x] Run twice quickly → second skipped (idempotency)
+- [x] Concurrent runs → no file corruption (locking)
 
 **Acceptance:** Can run digest, check status.json, see correct state.
 
@@ -1780,16 +1780,16 @@ Development follows small, testable milestones. Each milestone must pass its tes
 **Goal:** Full CLI interface and config validation.
 
 **Implementation:**
-- [ ] Argument parsing (--list, --dry-run, --preview, --force, etc.)
-- [ ] Config loading with version check
-- [ ] Crontab generation from schedules
-- [ ] Stale crontab detection
+- [x] Argument parsing (--list, --dry-run, --preview, --force, etc.)
+- [x] Config loading with version check
+- [x] Crontab generation from schedules
+- [x] Stale crontab detection
 
 **Tests:**
-- [ ] Invalid config version → clear error message
-- [ ] Missing required field → validation error
-- [ ] `--generate-crontab` → valid crontab syntax
-- [ ] Config newer than crontab → warning logged
+- [x] Invalid config version → clear error message
+- [x] Missing required field → validation error
+- [x] `--generate-crontab` → valid crontab syntax
+- [x] Config newer than crontab → warning logged
 
 **Acceptance:** All CLI commands documented in `--help` work correctly.
 

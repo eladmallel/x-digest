@@ -87,14 +87,14 @@ x-digest/
 **Goal:** Set up project structure, packaging, CI, and test harness.
 
 **Tasks:**
-- [ ] Create `src/` directory structure above
-- [ ] Create `pyproject.toml` with metadata, dependencies, and `[project.scripts]` entry point
-- [ ] Set up pytest with coverage
-- [ ] Create empty module files with docstrings
-- [ ] Create `.github/workflows/test.yml` for CI
-- [ ] Verify `pip install -e ".[dev]"` works
-- [ ] Verify `pytest` runs (0 tests, no errors)
-- [ ] Verify `x-digest --help` works
+- [x] Create `src/` directory structure above
+- [x] Create `pyproject.toml` with metadata, dependencies, and `[project.scripts]` entry point
+- [x] Set up pytest with coverage
+- [x] Create empty module files with docstrings
+- [x] Create `.github/workflows/test.yml` for CI
+- [x] Verify `pip install -e ".[dev]"` works
+- [x] Verify `pytest` runs (0 tests, no errors)
+- [x] Verify `x-digest --help` works
 
 **pyproject.toml (key parts):**
 ```toml
@@ -154,9 +154,9 @@ def test_imports():
 **Goal:** Define all error codes and custom exceptions.
 
 **Tasks:**
-- [ ] Create `ErrorCode` enum with all codes from DESIGN.md
-- [ ] Create custom exceptions: `BirdError`, `LLMError`, `DeliveryError`, `ConfigError`
-- [ ] Each exception carries an `ErrorCode`
+- [x] Create `ErrorCode` enum with all codes from DESIGN.md
+- [x] Create custom exceptions: `BirdError`, `LLMError`, `DeliveryError`, `ConfigError`
+- [x] Each exception carries an `ErrorCode`
 
 **Unit Tests:**
 ```python
@@ -187,10 +187,10 @@ def test_all_codes_have_description():
 **Goal:** Load and validate config file.
 
 **Tasks:**
-- [ ] Define expected config structure (TypedDict or dataclass)
-- [ ] `load_config(path)` → parsed config or raises `ConfigError`
-- [ ] Version check (fail if mismatch)
-- [ ] Required field validation
+- [x] Define expected config structure (TypedDict or dataclass)
+- [x] `load_config(path)` → parsed config or raises `ConfigError`
+- [x] Version check (fail if mismatch)
+- [x] Required field validation
 
 **Unit Tests:**
 ```python
@@ -234,10 +234,10 @@ def test_invalid_json_raises(tmp_path):
 **Goal:** Define Tweet and Media dataclasses matching bird CLI output.
 
 **Tasks:**
-- [ ] Create `Tweet` dataclass with all fields from DESIGN.md
-- [ ] Create `Media` dataclass
-- [ ] `parse_tweets(json_data)` → list of Tweet objects
-- [ ] Handle optional fields gracefully
+- [x] Create `Tweet` dataclass with all fields from DESIGN.md
+- [x] Create `Media` dataclass
+- [x] `parse_tweets(json_data)` → list of Tweet objects
+- [x] Handle optional fields gracefully
 
 **Unit Tests:**
 ```python
@@ -282,9 +282,9 @@ def test_parse_nested_quote_tweet():
 **Goal:** Classify tweets by type (standalone, thread, quote, retweet, reply).
 
 **Tasks:**
-- [ ] Create `TweetType` enum
-- [ ] `classify_tweet(tweet)` → TweetType
-- [ ] Detection rules from DESIGN.md
+- [x] Create `TweetType` enum
+- [x] `classify_tweet(tweet)` → TweetType
+- [x] Detection rules from DESIGN.md
 
 **Unit Tests:**
 ```python
@@ -324,9 +324,9 @@ def test_classify_thread_tweet():
 **Goal:** Group tweets into threads by conversationId.
 
 **Tasks:**
-- [ ] `reconstruct_threads(tweets)` → dict of conversationId → ordered list
-- [ ] Sort by createdAt within each thread
-- [ ] `classify_thread_completeness(thread)` → complete/partial_with_root/partial_no_root
+- [x] `reconstruct_threads(tweets)` → dict of conversationId → ordered list
+- [x] Sort by createdAt within each thread
+- [x] `classify_thread_completeness(thread)` → complete/partial_with_root/partial_no_root
 
 **Unit Tests:**
 ```python
@@ -373,9 +373,9 @@ def test_thread_completeness_partial():
 **Goal:** Remove standalone tweets that are quoted by another tweet in the batch.
 
 **Tasks:**
-- [ ] `dedupe_quotes(tweets)` → filtered list
-- [ ] Track which tweets are quoted
-- [ ] Keep the quote tweet, remove the quoted standalone
+- [x] `dedupe_quotes(tweets)` → filtered list
+- [x] Track which tweets are quoted
+- [x] Keep the quote tweet, remove the quoted standalone
 
 **Unit Tests:**
 ```python
@@ -414,9 +414,9 @@ def test_dedupe_no_effect_without_quotes():
 **Goal:** Read/write status.json with file locking.
 
 **Tasks:**
-- [ ] `load_status(path)` → status dict (create if missing)
-- [ ] `update_status(path, list_name, **kwargs)` with file locking
-- [ ] Initialize new list entries automatically
+- [x] `load_status(path)` → status dict (create if missing)
+- [x] `update_status(path, list_name, **kwargs)` with file locking
+- [x] Initialize new list entries automatically
 
 **Unit Tests:**
 ```python
@@ -507,11 +507,11 @@ def test_load_config_and_parse_tweets():
 **Goal:** Determine which tweets need pre-summarization.
 
 **Tasks:**
-- [ ] `should_presummary(tweet_or_thread)` → bool
-- [ ] Check text length (> 500 chars)
-- [ ] Check quote length (> 300 chars)
-- [ ] Check thread size (2+ tweets)
-- [ ] Check combined length (> 600 chars)
+- [x] `should_presummary(tweet_or_thread)` → bool
+- [x] Check text length (> 500 chars)
+- [x] Check quote length (> 300 chars)
+- [x] Check thread size (2+ tweets)
+- [x] Check combined length (> 600 chars)
 
 **Unit Tests:**
 ```python
@@ -552,9 +552,9 @@ def test_single_short_thread_no_presummary():
 **Goal:** Build the prompt for pre-summarization.
 
 **Tasks:**
-- [ ] `build_presummary_prompt(content, content_type, author)` → str
-- [ ] Include content type, author, length metadata
-- [ ] Use template from DESIGN.md
+- [x] `build_presummary_prompt(content, content_type, author)` → str
+- [x] Include content type, author, length metadata
+- [x] Use template from DESIGN.md
 
 **Unit Tests:**
 ```python
@@ -590,9 +590,9 @@ def test_prompt_includes_content():
 **Goal:** Create pluggable LLM interface with mock for testing.
 
 **Tasks:**
-- [ ] `LLMProvider` ABC in `llm/base.py` with `generate(prompt, system, images)` and `count_tokens(text)`
-- [ ] `MockLLMProvider` for testing that returns fixture responses
-- [ ] Track calls for assertions
+- [x] `LLMProvider` ABC in `llm/base.py` with `generate(prompt, system, images)` and `count_tokens(text)`
+- [x] `MockLLMProvider` for testing that returns fixture responses
+- [x] Track calls for assertions
 
 **Unit Tests:**
 ```python
@@ -633,10 +633,10 @@ def test_provider_interface():
 **Goal:** Implement Gemini-specific LLM provider.
 
 **Tasks:**
-- [ ] `GeminiProvider(LLMProvider)` in `llm/gemini.py`
-- [ ] API request building (text + multimodal)
-- [ ] Response parsing (extract text from Gemini response structure)
-- [ ] Error mapping to `LLMError` codes
+- [x] `GeminiProvider(LLMProvider)` in `llm/gemini.py`
+- [x] API request building (text + multimodal)
+- [x] Response parsing (extract text from Gemini response structure)
+- [x] Error mapping to `LLMError` codes
 
 **Unit Tests:**
 ```python
@@ -679,9 +679,9 @@ def test_build_multimodal_payload():
 **Goal:** Run pre-summarization on tweets that need it.
 
 **Tasks:**
-- [ ] `presummary_tweets(tweets, client)` → list of (tweet, summary|None)
-- [ ] Only call LLM for tweets that need it
-- [ ] Handle failures gracefully (return None, log warning)
+- [x] `presummary_tweets(tweets, client)` → list of (tweet, summary|None)
+- [x] Only call LLM for tweets that need it
+- [x] Handle failures gracefully (return None, log warning)
 
 **Unit Tests:**
 ```python
@@ -719,10 +719,10 @@ def test_presummary_handles_failure():
 **Goal:** Select which images to include in digest.
 
 **Tasks:**
-- [ ] `prioritize_images(tweets, max_total, max_per_tweet)` → list of (tweet_id, url)
-- [ ] Sort by engagement
-- [ ] Cap per tweet
-- [ ] Cap total
+- [x] `prioritize_images(tweets, max_total, max_per_tweet)` → list of (tweet_id, url)
+- [x] Sort by engagement
+- [x] Cap per tweet
+- [x] Cap total
 
 **Unit Tests:**
 ```python
@@ -776,9 +776,9 @@ def test_videos_use_preview():
 **Goal:** Fetch and base64-encode images for Gemini.
 
 **Tasks:**
-- [ ] `fetch_and_encode(url)` → base64 dict for Gemini
-- [ ] Detect MIME type from response
-- [ ] Mock HTTP for testing
+- [x] `fetch_and_encode(url)` → base64 dict for Gemini
+- [x] Detect MIME type from response
+- [x] Mock HTTP for testing
 
 **Unit Tests:**
 ```python
@@ -844,10 +844,10 @@ def test_presummary_pipeline():
 **Goal:** Build the structured payload for digest LLM.
 
 **Tasks:**
-- [ ] `build_digest_payload(tweets, summaries, images, config)` → markdown str
-- [ ] Include tweet metadata (author, time, engagement)
-- [ ] Mark pre-summarized content
-- [ ] Include image placeholders
+- [x] `build_digest_payload(tweets, summaries, images, config)` → markdown str
+- [x] Include tweet metadata (author, time, engagement)
+- [x] Mark pre-summarized content
+- [x] Include image placeholders
 
 **Unit Tests:**
 ```python
@@ -890,9 +890,9 @@ def test_payload_includes_links():
 **Goal:** Handle 0 or few tweets without LLM.
 
 **Tasks:**
-- [ ] `format_empty_digest(list_name, config)` → str
-- [ ] `format_sparse_digest(tweets, config)` → str (no LLM)
-- [ ] `should_use_llm(tweets)` → bool (threshold check)
+- [x] `format_empty_digest(list_name, config)` → str
+- [x] `format_sparse_digest(tweets, config)` → str (no LLM)
+- [x] `should_use_llm(tweets)` → bool (threshold check)
 
 **Unit Tests:**
 ```python
@@ -926,10 +926,10 @@ def test_sparse_threshold():
 **Goal:** Build the system prompt for digest LLM.
 
 **Tasks:**
-- [ ] `build_system_prompt(config)` → str
-- [ ] Use list-specific prompt if present
-- [ ] Fall back to default prompt
-- [ ] Fall back to built-in prompt
+- [x] `build_system_prompt(config)` → str
+- [x] Use list-specific prompt if present
+- [x] Fall back to default prompt
+- [x] Fall back to built-in prompt
 
 **Unit Tests:**
 ```python
@@ -962,9 +962,9 @@ def test_builtin_prompt_fallback():
 **Goal:** Generate digest from payload using LLM.
 
 **Tasks:**
-- [ ] `generate_digest(tweets, summaries, images, config, client)` → str
-- [ ] Build payload, call LLM, return result
-- [ ] Handle sparse/empty cases
+- [x] `generate_digest(tweets, summaries, images, config, client)` → str
+- [x] Build payload, call LLM, return result
+- [x] Handle sparse/empty cases
 
 **Unit Tests:**
 ```python
@@ -996,9 +996,9 @@ def test_generate_digest_includes_images():
 **Goal:** Split long digests into WhatsApp-safe chunks.
 
 **Tasks:**
-- [ ] `split_digest(text, max_length=4000)` → list of str
-- [ ] Split at section boundaries
-- [ ] Add part indicators (1/3, 2/3, etc.)
+- [x] `split_digest(text, max_length=4000)` → list of str
+- [x] Split at section boundaries
+- [x] Add part indicators (1/3, 2/3, etc.)
 
 **Unit Tests:**
 ```python
@@ -1075,9 +1075,9 @@ def test_full_digest_generation():
 **Goal:** Create pluggable delivery interface with mock.
 
 **Tasks:**
-- [ ] `DeliveryProvider` ABC in `delivery/base.py` with `send(recipient, message)` and `max_message_length()`
-- [ ] `MockDeliveryProvider` for testing
-- [ ] Provider registry: `get_provider(config)` → provider instance
+- [x] `DeliveryProvider` ABC in `delivery/base.py` with `send(recipient, message)` and `max_message_length()`
+- [x] `MockDeliveryProvider` for testing
+- [x] Provider registry: `get_provider(config)` → provider instance
 
 **Unit Tests:**
 ```python
@@ -1133,9 +1133,9 @@ def test_get_provider_unknown():
 **Goal:** Implement WhatsApp delivery provider.
 
 **Tasks:**
-- [ ] `WhatsAppProvider(DeliveryProvider)` in `delivery/whatsapp.py`
-- [ ] HTTP POST to gateway URL
-- [ ] Response parsing, error mapping
+- [x] `WhatsAppProvider(DeliveryProvider)` in `delivery/whatsapp.py`
+- [x] HTTP POST to gateway URL
+- [x] Response parsing, error mapping
 
 **Unit Tests:**
 ```python
@@ -1164,10 +1164,10 @@ def test_whatsapp_request_format(mock_http):
 **Goal:** Implement Telegram delivery provider.
 
 **Tasks:**
-- [ ] `TelegramProvider(DeliveryProvider)` in `delivery/telegram.py`
-- [ ] Bot API `sendMessage` call
-- [ ] WhatsApp formatting → MarkdownV2 conversion
-- [ ] Long message splitting (Telegram limit: 4096 chars)
+- [x] `TelegramProvider(DeliveryProvider)` in `delivery/telegram.py`
+- [x] Bot API `sendMessage` call
+- [x] WhatsApp formatting → MarkdownV2 conversion
+- [x] Long message splitting (Telegram limit: 4096 chars)
 
 **Unit Tests:**
 ```python
@@ -1202,9 +1202,9 @@ def test_telegram_request_format(mock_http):
 **Goal:** Send digest parts with retry logic (works with any provider).
 
 **Tasks:**
-- [ ] `send_digest(parts, provider, max_retries=3)` → bool
-- [ ] Retry failed parts with exponential backoff
-- [ ] Return False if any part fails after retries
+- [x] `send_digest(parts, provider, max_retries=3)` → bool
+- [x] Retry failed parts with exponential backoff
+- [x] Return False if any part fails after retries
 
 **Unit Tests:**
 ```python
@@ -1252,8 +1252,8 @@ def test_partial_failure_returns_false():
 **Goal:** Prevent duplicate runs within time window.
 
 **Tasks:**
-- [ ] `should_run(list_name, status, window_minutes=30)` → bool
-- [ ] Check last_run timestamp against window
+- [x] `should_run(list_name, status, window_minutes=30)` → bool
+- [x] Check last_run timestamp against window
 
 **Unit Tests:**
 ```python
@@ -1285,9 +1285,9 @@ def test_should_not_run_within_window():
 **Goal:** Calculate fetch window based on last success.
 
 **Tasks:**
-- [ ] `get_time_window(list_name, status)` → (start, end)
-- [ ] Start from last_success if present
-- [ ] Default to 24h lookback if no history
+- [x] `get_time_window(list_name, status)` → (start, end)
+- [x] Start from last_success if present
+- [x] Default to 24h lookback if no history
 
 **Unit Tests:**
 ```python
@@ -1323,9 +1323,9 @@ def test_time_window_end_is_now():
 **Goal:** Write meta.json with run metrics.
 
 **Tasks:**
-- [ ] `write_meta(path, metrics)` → None
-- [ ] Create directory structure (year/month/week/day/list)
-- [ ] Include all fields from DESIGN.md schema
+- [x] `write_meta(path, metrics)` → None
+- [x] Create directory structure (year/month/week/day/list)
+- [x] Include all fields from DESIGN.md schema
 
 **Unit Tests:**
 ```python
@@ -1396,10 +1396,10 @@ def test_delivery_with_status_update(tmp_path):
 **Goal:** Actually call bird CLI (requires cookies).
 
 **Tasks:**
-- [ ] `fetch_tweets_from_bird(list_id, since, env_path)` → list of Tweet
-- [ ] Source env file before calling
-- [ ] Parse JSON output
-- [ ] Map errors to ErrorCodes
+- [x] `fetch_tweets_from_bird(list_id, since, env_path)` → list of Tweet
+- [x] Source env file before calling
+- [x] Parse JSON output
+- [x] Map errors to ErrorCodes
 
 **Tests:** (Integration, requires bird CLI)
 ```python
@@ -1422,9 +1422,9 @@ def test_bird_fetch_real():
 **Goal:** Actually call Gemini API.
 
 **Tasks:**
-- [ ] `RealGeminiClient` class using requests
-- [ ] API key from environment
-- [ ] Multimodal payload building
+- [x] `RealGeminiClient` class using requests
+- [x] API key from environment
+- [x] Multimodal payload building
 
 **Tests:** (Integration, requires API key)
 ```python
@@ -1453,8 +1453,8 @@ def test_gemini_with_image():
 **Goal:** Actually send via WhatsApp gateway.
 
 **Tasks:**
-- [ ] `RealWhatsAppClient` class using requests
-- [ ] Gateway URL from environment
+- [x] `RealWhatsAppClient` class using requests
+- [x] Gateway URL from environment
 
 **Tests:** (Integration, requires gateway)
 ```python
@@ -1496,12 +1496,12 @@ def test_full_pipeline_e2e():
 **Goal:** Full CLI with subcommands.
 
 **Tasks:**
-- [ ] Subcommand structure: `run`, `watch`, `validate`, `crontab`, `onboard`
-- [ ] `run`: `--list`, `--dry-run`, `--preview`, `--force`, `--test-recipient`
-- [ ] `watch`: `--list`, `--every` (parse durations like `12h`, `30m`)
-- [ ] `validate`: no args, reads config
-- [ ] `crontab`: generate crontab from config
-- [ ] Config file search: `./x-digest-config.json` → `~/.config/x-digest/config.json` → `--config`
+- [x] Subcommand structure: `run`, `watch`, `validate`, `crontab`, `onboard`
+- [x] `run`: `--list`, `--dry-run`, `--preview`, `--force`, `--test-recipient`
+- [x] `watch`: `--list`, `--every` (parse durations like `12h`, `30m`)
+- [x] `validate`: no args, reads config
+- [x] `crontab`: generate crontab from config
+- [x] Config file search: `./x-digest-config.json` → `~/.config/x-digest/config.json` → `--config`
 
 **Unit Tests:**
 ```python
@@ -1535,10 +1535,10 @@ def test_parse_duration():
 **Goal:** Run digests on an interval without cron.
 
 **Tasks:**
-- [ ] `watch_loop(list_name, interval_seconds, config)` — runs in foreground
-- [ ] Respects idempotency (skips if recent run)
-- [ ] Clean Ctrl+C handling
-- [ ] Logs next run time
+- [x] `watch_loop(list_name, interval_seconds, config)` — runs in foreground
+- [x] Respects idempotency (skips if recent run)
+- [x] Clean Ctrl+C handling
+- [x] Logs next run time
 
 **Unit Tests:**
 ```python
