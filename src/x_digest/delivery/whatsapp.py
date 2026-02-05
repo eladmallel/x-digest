@@ -15,43 +15,42 @@ from .base import DeliveryProvider
 from ..errors import DeliveryError, ErrorCode
 
 
-# Default paths for OpenClaw CLI discovery
-DEFAULT_OPENCLAW_SCRIPT = "/root/clawdbot/openclaw.mjs"
-DEFAULT_NODE_PATHS = [
-    "/root/.nvm/versions/node/v24.13.0/bin/node",
-    "/usr/local/bin/node",
-    "/usr/bin/node",
-]
-
-
 def _find_node() -> str:
-    """Find the Node.js binary."""
-    for path in DEFAULT_NODE_PATHS:
-        if os.path.isfile(path) and os.access(path, os.X_OK):
-            return path
+    """Find the Node.js binary via env var or PATH."""
+    # Check environment variable first
+    env_path = os.environ.get("OPENCLAW_NODE_PATH")
+    if env_path and os.path.isfile(env_path) and os.access(env_path, os.X_OK):
+        return env_path
 
-    # Fallback: search PATH
+    # Search PATH
     node = shutil.which("node")
     if node:
         return node
 
     raise DeliveryError(
         ErrorCode.WHATSAPP_GATEWAY_UNAVAILABLE,
-        "Node.js binary not found. Set OPENCLAW_NODE_PATH in .env"
+        "Node.js binary not found. Set OPENCLAW_NODE_PATH or add node to PATH"
     )
 
 
 def _find_openclaw_script(cli_path: Optional[str] = None) -> str:
-    """Find the OpenClaw CLI script."""
+    """Find the OpenClaw CLI script via explicit path, env var, or PATH."""
     if cli_path and os.path.isfile(cli_path):
         return cli_path
 
-    if os.path.isfile(DEFAULT_OPENCLAW_SCRIPT):
-        return DEFAULT_OPENCLAW_SCRIPT
+    # Check environment variable
+    env_path = os.environ.get("OPENCLAW_CLI_PATH")
+    if env_path and os.path.isfile(env_path):
+        return env_path
+
+    # Search PATH for openclaw binary
+    openclaw = shutil.which("openclaw")
+    if openclaw:
+        return openclaw
 
     raise DeliveryError(
         ErrorCode.WHATSAPP_GATEWAY_UNAVAILABLE,
-        f"OpenClaw CLI not found at {DEFAULT_OPENCLAW_SCRIPT}. Set OPENCLAW_CLI_PATH in .env"
+        "OpenClaw CLI not found. Set OPENCLAW_CLI_PATH or add openclaw to PATH"
     )
 
 
@@ -69,7 +68,7 @@ class WhatsAppProvider(DeliveryProvider):
         Initialize WhatsApp provider.
 
         Args:
-            cli_path: Path to openclaw.mjs (auto-detected if None)
+            cli_path: Path to openclaw CLI (auto-detected if None)
             node_path: Path to node binary (auto-detected if None)
             recipient: Default recipient phone number
             timeout: Subprocess timeout in seconds

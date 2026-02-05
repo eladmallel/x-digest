@@ -145,22 +145,14 @@ def build_digest_payload(
     return "\n".join(payload_lines)
 
 
-SECTION_DEFINITIONS = {
-    "top":            ("🔥", "Top", "3-5 highest-signal items. Major launches, breaking news, viral takes."),
-    "dev_tips":       ("🛠️", "Dev Tips", "Tools, techniques, code tips, architecture insights, tutorials."),
-    "hebrew":         ("🇮🇱", "Hebrew", "Hebrew-language tweets. Translate to English, keep [Hebrew] tag."),
-    "israel_hebrew":  ("🇮🇱", "Israel/Hebrew", "Hebrew-language and Israel-related tweets. Translate Hebrew to English, keep [Hebrew] tag."),
-    "deep":           ("🤔", "Deep", "Thought-provoking takes, essays, philosophical observations."),
-    "business":       ("💼", "Business/Investing", "Business insights, investing ideas, market analysis, company strategy."),
-    "geopolitics":    ("🌍", "Geopolitics", "Geopolitical analysis, macro trends, international affairs."),
-}
-
-
 def build_system_prompt(config: Dict[str, Any]) -> str:
     """
     Build system prompt for digest LLM.
     
-    Uses hierarchy: list-specific prompt -> default prompt -> built-in with sections from config
+    Uses hierarchy: list-specific prompt -> default prompt -> built-in with sections from config.
+    
+    Sections are read directly from config as a list of dicts with keys:
+    emoji, name, description. No hard-coded section registry needed.
     """
     # Check for list-specific prompt override
     if "prompt" in config:
@@ -173,26 +165,27 @@ def build_system_prompt(config: Dict[str, Any]) -> str:
     
     # Built-in prompt, customized with sections from config if available
     sections = config.get("sections")
-    if sections:
+    if sections and isinstance(sections, list) and len(sections) > 0:
         return _get_builtin_digest_prompt_with_sections(sections)
     
     return _get_builtin_digest_prompt()
 
 
-def _get_builtin_digest_prompt_with_sections(section_keys: List[str]) -> str:
-    """Build digest prompt with specific sections from config."""
+def _get_builtin_digest_prompt_with_sections(sections: List[Dict[str, Any]]) -> str:
+    """Build digest prompt with specific sections from config.
+    
+    Args:
+        sections: List of section dicts, each with 'emoji', 'name', 'description' keys.
+    """
     base = _get_builtin_digest_prompt()
     
     # Replace the SECTIONS block with config-driven sections
     section_lines = ["SECTIONS (use exactly these in this order, skip any with zero items):\n"]
-    for key in section_keys:
-        defn = SECTION_DEFINITIONS.get(key)
-        if defn:
-            emoji, name, desc = defn
-            section_lines.append(f"## {emoji} {name}\n{desc}\n")
-        else:
-            # Unknown section — let the LLM figure it out
-            section_lines.append(f"## {key}\n")
+    for section in sections:
+        emoji = section.get("emoji", "📋")
+        name = section.get("name", section.get("key", "Section"))
+        desc = section.get("description", "")
+        section_lines.append(f"## {emoji} {name}\n{desc}\n")
     
     sections_block = "\n".join(section_lines)
     

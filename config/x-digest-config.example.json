@@ -5,12 +5,24 @@
       "id": "1234567890123456789",
       "display_name": "AI & Dev",
       "emoji": "🤖",
+      "sections": [
+        {"key": "top", "emoji": "🔥", "name": "Top", "description": "3-5 highest-signal items. Major launches, breaking news, viral takes."},
+        {"key": "dev_tips", "emoji": "🛠️", "name": "Dev Tips", "description": "Tools, techniques, code tips, architecture insights, tutorials."},
+        {"key": "hebrew", "emoji": "🇮🇱", "name": "Hebrew", "description": "Hebrew-language tweets. Translate to English, keep [Hebrew] tag."},
+        {"key": "deep", "emoji": "🤔", "name": "Deep", "description": "Thought-provoking takes, essays, philosophical observations."}
+      ],
       "enabled": true
     },
     "investing": {
       "id": "9876543210987654321",
       "display_name": "Investing",
       "emoji": "📈",
+      "sections": [
+        {"key": "top", "emoji": "🔥", "name": "Top", "description": "3-5 highest-signal items. Major launches, breaking news, viral takes."},
+        {"key": "business", "emoji": "💼", "name": "Business/Investing", "description": "Business insights, investing ideas, market analysis, company strategy."},
+        {"key": "israel_hebrew", "emoji": "🇮🇱", "name": "Israel/Hebrew", "description": "Hebrew-language and Israel-related tweets. Translate Hebrew to English, keep [Hebrew] tag."},
+        {"key": "geopolitics", "emoji": "🌍", "name": "Geopolitics", "description": "Geopolitical analysis, macro trends, international affairs."}
+      ],
       "enabled": true
     }
   },
@@ -49,7 +61,7 @@
     },
     {
       "name": "evening-ai",
-      "list": "ai-dev", 
+      "list": "ai-dev",
       "cron": "0 0 * * *",
       "description": "7pm EST"
     }

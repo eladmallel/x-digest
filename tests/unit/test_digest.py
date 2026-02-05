@@ -99,6 +99,56 @@ def test_build_system_prompt_hierarchy():
     assert "Twitter digest curator" in prompt
 
 
+def test_build_system_prompt_with_config_sections():
+    """System prompt uses sections from config (list of dicts)."""
+    sections = [
+        {"key": "top", "emoji": "🔥", "name": "Top", "description": "3-5 highest-signal items."},
+        {"key": "dev_tips", "emoji": "🛠️", "name": "Dev Tips", "description": "Tools and techniques."},
+        {"key": "deep", "emoji": "🤔", "name": "Deep", "description": "Thought-provoking takes."},
+    ]
+    config = {"sections": sections}
+    prompt = build_system_prompt(config)
+    
+    assert "🔥 Top" in prompt
+    assert "3-5 highest-signal items." in prompt
+    assert "🛠️ Dev Tips" in prompt
+    assert "Tools and techniques." in prompt
+    assert "🤔 Deep" in prompt
+    assert "Thought-provoking takes." in prompt
+    # Should still have the base prompt structure
+    assert "Twitter digest curator" in prompt
+
+
+def test_build_system_prompt_sections_override_builtin():
+    """Config sections replace the built-in default sections."""
+    # Custom sections with different names
+    sections = [
+        {"key": "hot", "emoji": "🌶️", "name": "Hot Takes", "description": "Spicy opinions."},
+    ]
+    config = {"sections": sections}
+    prompt = build_system_prompt(config)
+    
+    assert "🌶️ Hot Takes" in prompt
+    assert "Spicy opinions." in prompt
+    # The SECTIONS block should only contain our custom section, not the defaults
+    # (The EXAMPLE OUTPUT section may still reference defaults, that's fine)
+    sections_start = prompt.find("SECTIONS (use exactly these")
+    sections_end = prompt.find("If a big theme dominates")
+    sections_block = prompt[sections_start:sections_end]
+    assert "🌶️ Hot Takes" in sections_block
+    assert "🛠️ Dev Tips" not in sections_block
+
+
+def test_build_system_prompt_empty_sections_uses_builtin():
+    """Empty sections list falls back to built-in prompt."""
+    config = {"sections": []}
+    prompt = build_system_prompt(config)
+    assert "Twitter digest curator" in prompt
+    # Should use built-in default sections
+    assert "🔥 Top" in prompt
+    assert "🛠️ Dev Tips" in prompt
+
+
 def test_generate_digest_empty_tweets():
     """Empty tweet list returns empty digest."""
     mock_llm = MockLLMProvider()

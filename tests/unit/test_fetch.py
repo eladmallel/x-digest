@@ -194,34 +194,28 @@ class TestLoadBirdEnv:
 class TestFindBirdExecutable:
     """Tests for finding the bird CLI executable."""
 
+    @patch.dict('os.environ', {}, clear=False)
     @patch('x_digest.fetch.shutil.which')
     def test_bird_in_path(self, mock_which):
         """Bird found in PATH."""
+        # Ensure BIRD_PATH is not set
+        os.environ.pop('BIRD_PATH', None)
         mock_which.return_value = "/usr/local/bin/bird"
         result = _find_bird_executable()
         assert result == "/usr/local/bin/bird"
 
-    @patch('x_digest.fetch.shutil.which')
-    @patch('os.path.exists')
-    def test_bird_in_bun_global(self, mock_exists, mock_which):
-        """Bird found in bun global install."""
-        mock_which.return_value = None
-
-        def exists_side_effect(path):
-            return "bun/install/global" in path
-        mock_exists.side_effect = exists_side_effect
-
+    @patch.dict('os.environ', {'BIRD_PATH': '/custom/bird'})
+    @patch('os.path.exists', return_value=True)
+    def test_bird_from_env_var(self, mock_exists):
+        """Bird found via BIRD_PATH env var."""
         result = _find_bird_executable()
-        assert result is not None
-        assert "bird" in result
+        assert result == "/custom/bird"
 
-    @patch('x_digest.fetch.shutil.which')
-    @patch('os.path.exists')
-    def test_bird_not_found(self, mock_exists, mock_which):
+    @patch.dict('os.environ', {}, clear=False)
+    @patch('x_digest.fetch.shutil.which', return_value=None)
+    def test_bird_not_found(self, mock_which):
         """Bird not found anywhere."""
-        mock_which.return_value = None
-        mock_exists.return_value = False
-
+        os.environ.pop('BIRD_PATH', None)
         result = _find_bird_executable()
         assert result is None
 
@@ -245,12 +239,9 @@ class TestFindRuntime:
         result = _find_runtime()
         assert result == "/usr/bin/node"
 
-    @patch('x_digest.fetch.shutil.which')
-    @patch('os.path.exists')
-    def test_no_runtime_found(self, mock_exists, mock_which):
+    @patch('x_digest.fetch.shutil.which', return_value=None)
+    def test_no_runtime_found(self, mock_which):
         """No JavaScript runtime found."""
-        mock_which.return_value = None
-        mock_exists.return_value = False
         result = _find_runtime()
         assert result is None
 

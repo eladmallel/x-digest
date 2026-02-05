@@ -9,8 +9,6 @@ from x_digest.delivery.whatsapp import (
     WhatsAppProvider,
     _find_node,
     _find_openclaw_script,
-    DEFAULT_OPENCLAW_SCRIPT,
-    DEFAULT_NODE_PATHS,
 )
 from x_digest.delivery.base import get_provider
 from x_digest.errors import DeliveryError, ErrorCode
@@ -22,39 +20,25 @@ from x_digest.errors import DeliveryError, ErrorCode
 class TestFindNode:
     """Tests for _find_node helper."""
 
-    @patch("os.path.isfile")
-    @patch("os.access")
-    def test_finds_first_default_path(self, mock_access, mock_isfile):
-        """Returns first existing default node path."""
-        mock_isfile.side_effect = lambda p: p == DEFAULT_NODE_PATHS[0]
-        mock_access.return_value = True
-
+    @patch.dict("os.environ", {"OPENCLAW_NODE_PATH": "/env/node"})
+    @patch("os.path.isfile", return_value=True)
+    @patch("os.access", return_value=True)
+    def test_finds_env_var_path(self, mock_access, mock_isfile):
+        """Returns path from OPENCLAW_NODE_PATH env var."""
         result = _find_node()
-        assert result == DEFAULT_NODE_PATHS[0]
+        assert result == "/env/node"
 
-    @patch("os.path.isfile")
-    @patch("os.access")
-    def test_finds_second_default_path(self, mock_access, mock_isfile):
-        """Falls back to second path if first missing."""
-        mock_isfile.side_effect = lambda p: p == DEFAULT_NODE_PATHS[1]
-        mock_access.return_value = True
-
-        result = _find_node()
-        assert result == DEFAULT_NODE_PATHS[1]
-
+    @patch.dict("os.environ", {}, clear=True)
     @patch("shutil.which", return_value="/opt/bin/node")
-    @patch("os.path.isfile", return_value=False)
-    @patch("os.access", return_value=False)
-    def test_falls_back_to_which(self, mock_access, mock_isfile, mock_which):
-        """Falls back to shutil.which when defaults not found."""
+    def test_falls_back_to_which(self, mock_which):
+        """Falls back to shutil.which when env var not set."""
         result = _find_node()
         assert result == "/opt/bin/node"
         mock_which.assert_called_once_with("node")
 
+    @patch.dict("os.environ", {}, clear=True)
     @patch("shutil.which", return_value=None)
-    @patch("os.path.isfile", return_value=False)
-    @patch("os.access", return_value=False)
-    def test_raises_when_not_found(self, mock_access, mock_isfile, mock_which):
+    def test_raises_when_not_found(self, mock_which):
         """Raises DeliveryError when node not found anywhere."""
         with pytest.raises(DeliveryError) as exc:
             _find_node()
@@ -71,15 +55,26 @@ class TestFindOpenclawScript:
         result = _find_openclaw_script("/custom/openclaw.mjs")
         assert result == "/custom/openclaw.mjs"
 
+    @patch.dict("os.environ", {"OPENCLAW_CLI_PATH": "/env/openclaw.mjs"})
     @patch("os.path.isfile")
-    def test_default_path(self, mock_isfile):
-        """Falls back to default path."""
-        mock_isfile.side_effect = lambda p: p == DEFAULT_OPENCLAW_SCRIPT
+    def test_env_var_path(self, mock_isfile):
+        """Falls back to OPENCLAW_CLI_PATH env var."""
+        mock_isfile.side_effect = lambda p: p == "/env/openclaw.mjs"
         result = _find_openclaw_script(None)
-        assert result == DEFAULT_OPENCLAW_SCRIPT
+        assert result == "/env/openclaw.mjs"
 
+    @patch.dict("os.environ", {}, clear=True)
+    @patch("shutil.which", return_value="/usr/local/bin/openclaw")
     @patch("os.path.isfile", return_value=False)
-    def test_raises_when_not_found(self, mock_isfile):
+    def test_falls_back_to_which(self, mock_isfile, mock_which):
+        """Falls back to shutil.which for openclaw."""
+        result = _find_openclaw_script(None)
+        assert result == "/usr/local/bin/openclaw"
+
+    @patch.dict("os.environ", {}, clear=True)
+    @patch("shutil.which", return_value=None)
+    @patch("os.path.isfile", return_value=False)
+    def test_raises_when_not_found(self, mock_isfile, mock_which):
         """Raises when CLI script not found."""
         with pytest.raises(DeliveryError) as exc:
             _find_openclaw_script(None)

@@ -180,27 +180,20 @@ def _find_bird_executable() -> Optional[str]:
     """
     Find the bird CLI executable.
 
-    Checks multiple locations and returns the path to bird CLI script.
+    Checks BIRD_PATH env var, then searches PATH via shutil.which().
 
     Returns:
         Path to bird executable, or None if not found
     """
-    # Check if bird is in PATH
+    # Check environment variable first
+    env_path = os.environ.get("BIRD_PATH")
+    if env_path and os.path.exists(env_path):
+        return env_path
+
+    # Search PATH
     bird_path = shutil.which('bird')
     if bird_path:
         return bird_path
-
-    # Check common bun global install location
-    bun_bird = os.path.expanduser(
-        "~/.bun/install/global/node_modules/@steipete/bird/dist/cli.js"
-    )
-    if os.path.exists(bun_bird):
-        return bun_bird
-
-    # Check root's bun location (for VPS setups)
-    root_bun_bird = "/root/.bun/install/global/node_modules/@steipete/bird/dist/cli.js"
-    if os.path.exists(root_bun_bird):
-        return root_bun_bird
 
     return None
 
@@ -209,19 +202,15 @@ def _find_runtime() -> Optional[str]:
     """
     Find a JavaScript runtime (bun or node) for executing bird CLI.
 
+    Searches PATH via shutil.which(). No hard-coded paths.
+
     Returns:
         Path to runtime executable, or None if not found
     """
-    # Try bun first (faster startup)
+    # Try bun first (faster startup), then node
     for runtime in ['bun', 'node']:
         path = shutil.which(runtime)
         if path:
-            return path
-
-    # Check common locations
-    for path in ['/root/.bun/bin/bun', '/usr/local/bin/bun',
-                 '/usr/local/bin/node', '/usr/bin/node']:
-        if os.path.exists(path):
             return path
 
     return None
