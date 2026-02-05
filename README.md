@@ -29,18 +29,16 @@ bird CLI → Python script → Gemini API → WhatsApp/Telegram
 
 ### 1. Clone and install
 
+Requires [uv](https://docs.astral.sh/uv/getting-started/installation/) (fast Python package manager).
+
 ```bash
 git clone https://github.com/eladmallel/x-digest.git
 cd x-digest
-
-# Using uv (recommended)
-uv venv && uv pip install -e ".[dev]"
-
-# Or with pip
-pip install -e ".[dev]"
+uv sync                # Install runtime deps
+uv sync --extra dev    # Also install test/dev deps
 ```
 
-> **What's `.[dev]`?** The `.` installs the package from the current directory. `[dev]` adds optional development dependencies (pytest, coverage tools) defined in `pyproject.toml`. If you just want to run digests without running tests, `pip install -e .` is enough.
+That's it — uv creates the virtual environment, installs everything from the lockfile, and you're ready to go.
 
 ### 2. Set up bird CLI
 
@@ -111,13 +109,13 @@ Available section types: `top`, `dev_tips`, `hebrew`, `deep`, `business`, `israe
 
 ```bash
 # Preview — fetch tweets and show classification (no LLM, no send)
-x-digest run --list my-list --preview
+uv run x-digest run --list my-list --preview
 
 # Dry run — full pipeline, prints digest to stdout (no send)
-x-digest run --list my-list --dry-run
+uv run x-digest run --list my-list --dry-run
 
 # Real run — generates and sends digest
-x-digest run --list my-list
+uv run x-digest run --list my-list
 ```
 
 ### 6. Automate with cron
@@ -125,44 +123,44 @@ x-digest run --list my-list
 Generate crontab entries from your config:
 
 ```bash
-x-digest crontab
+uv run x-digest crontab
 ```
 
 Output:
 ```
 # morning: 7am EST
-0 12 * * * python3 -m x_digest run --list my-list
+0 12 * * * cd /path/to/x-digest && uv run x-digest run --list my-list
 ```
 
 Install to system cron:
 
 ```bash
 # Write to /etc/cron.d/x-digest (edit paths as needed)
-x-digest crontab | sudo tee /etc/cron.d/x-digest
+uv run x-digest crontab | sudo tee /etc/cron.d/x-digest
 ```
 
 Or use watch mode for quick testing:
 
 ```bash
 # Run every 12 hours
-x-digest watch --list my-list --every 12h
+uv run x-digest watch --list my-list --every 12h
 ```
 
 ## CLI Reference
 
 ```
-x-digest run --list <name>      Run digest for a list
+uv run x-digest run --list <name>   Run digest for a list
   --dry-run                     Print digest instead of sending
   --preview                     Fetch + classify only (no LLM)
   --force                       Skip idempotency check
   --hours <n>                   Override lookback window
   --no-artifacts                Skip saving run artifacts
 
-x-digest validate               Validate config file
-x-digest crontab                Generate crontab from config schedules
-x-digest watch --list <name> --every <interval>
-                                Run on interval (e.g. 12h, 30m)
-x-digest --version              Show version
+uv run x-digest validate            Validate config file
+uv run x-digest crontab             Generate crontab from config schedules
+uv run x-digest watch --list <name> --every <interval>
+                                    Run on interval (e.g. 12h, 30m)
+uv run x-digest --version           Show version
 ```
 
 ## How It Works
@@ -296,16 +294,16 @@ Register in a factory function, add config support, write tests.
 
 ```bash
 # All tests
-pytest
+uv run pytest
 
 # Just unit tests
-pytest tests/unit/
+uv run pytest tests/unit/
 
 # With coverage
-pytest --cov=x_digest --cov-report=html
+uv run pytest --cov=x_digest --cov-report=html
 
 # Skip external/integration tests
-pytest tests/unit/ -m "not external"
+uv run pytest tests/unit/ -m "not external"
 ```
 
 ## Docs

@@ -124,7 +124,8 @@ class TestGenerateCrontab:
 class TestCrontabStaleness:
     """Tests for stale crontab detection."""
 
-    def test_no_crontab_file(self, tmp_path):
+    @patch("os.path.exists", return_value=False)
+    def test_no_crontab_file(self, mock_exists, tmp_path):
         """No crontab file returns None (no warning)."""
         config_file = tmp_path / "config.json"
         config_file.write_text('{}')
