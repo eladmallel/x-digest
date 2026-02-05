@@ -217,7 +217,12 @@ def test_split_digest_at_section_boundary():
         "\n\n💡 *Worth Noting*\n\n" + "y" * 3500
     )
     
-    parts = split_digest(digest, max_length=4000)
+    # Pass sections config so emoji-based splitting works
+    sections = [
+        {"emoji": "🔥", "name": "Top"},
+        {"emoji": "💡", "name": "Worth Noting"},
+    ]
+    parts = split_digest(digest, max_length=4000, sections=sections)
     
     assert len(parts) == 2
     assert "🔥 *Top*" in parts[0]
@@ -275,7 +280,13 @@ def test_split_digest_multiple_sections():
         "\n\n💡 *Worth Noting*\n\n" + "c" * 3800
     )
     
-    parts = split_digest(digest, max_length=4000)
+    # Pass sections config so emoji-based splitting works
+    sections = [
+        {"emoji": "🔥", "name": "Top"},
+        {"emoji": "🚀", "name": "Product Launch"},
+        {"emoji": "💡", "name": "Worth Noting"},
+    ]
+    parts = split_digest(digest, max_length=4000, sections=sections)
     
     assert len(parts) == 3
     assert "🔥 *Top*" in parts[0]
@@ -305,7 +316,12 @@ def test_split_digest_preserves_formatting():
         "\n\n💡 *Worth Noting*\n\n*Item 3* - " + "y" * 2000
     )
     
-    parts = split_digest(digest, max_length=4000)
+    # Pass sections config so emoji-based splitting works
+    sections = [
+        {"emoji": "🔥", "name": "Top"},
+        {"emoji": "💡", "name": "Worth Noting"},
+    ]
+    parts = split_digest(digest, max_length=4000, sections=sections)
     
     assert len(parts) >= 2
     # Check that section headers end up in the right parts

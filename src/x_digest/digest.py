@@ -172,34 +172,73 @@ def build_system_prompt(config: Dict[str, Any]) -> str:
 
 
 def _get_builtin_digest_prompt_with_sections(sections: List[Dict[str, Any]]) -> str:
-    """Build digest prompt with specific sections from config.
+    """Build digest prompt entirely from configured sections.
     
     Args:
         sections: List of section dicts, each with 'emoji', 'name', 'description' keys.
-    """
-    base = _get_builtin_digest_prompt()
     
-    # Replace the SECTIONS block with config-driven sections
-    section_lines = ["SECTIONS (use exactly these in this order, skip any with zero items):\n"]
+    Generates the full prompt including sections definitions AND example output
+    based on the provided sections - no hard-coded section assumptions.
+    """
+    # Build sections block
+    section_lines = []
     for section in sections:
         emoji = section.get("emoji", "📋")
         name = section.get("name", section.get("key", "Section"))
         desc = section.get("description", "")
-        section_lines.append(f"## {emoji} {name}\n{desc}\n")
+        section_lines.append(f"## {emoji} {name}\n{desc}")
     
-    sections_block = "\n".join(section_lines)
+    sections_block = "\n\n".join(section_lines)
     
-    # Replace the SECTIONS portion of the built-in prompt
-    marker_start = "SECTIONS (use exactly these"
-    marker_end = "If a big theme dominates"
+    # Build example output using configured sections (first 2-3 sections)
+    example_lines = []
+    example_sections = sections[:min(3, len(sections))]
+    for i, section in enumerate(example_sections):
+        emoji = section.get("emoji", "📋")
+        name = section.get("name", section.get("key", "Section"))
+        example_lines.append(f"## {emoji} {name}")
+        # Generic example item
+        example_lines.append(f"- *Example highlight for {name}* — brief summary of the content")
+        example_lines.append(f"  @username https://x.com/username/status/123456789{i}")
+        if i < len(example_sections) - 1:
+            example_lines.append("")
     
-    start_idx = base.find(marker_start)
-    end_idx = base.find(marker_end)
+    example_block = "\n".join(example_lines)
     
-    if start_idx >= 0 and end_idx >= 0:
-        return base[:start_idx] + sections_block + "\n" + base[end_idx:]
+    # Build bonus section instruction using first section name
+    first_section = sections[0] if sections else {"emoji": "📋", "name": "Top"}
+    first_emoji = first_section.get("emoji", "📋")
+    first_name = first_section.get("name", "Top")
     
-    return base
+    return f"""You are a Twitter digest curator. Distill a curated list's tweets into a concise, scannable WhatsApp digest.
+
+GOAL: Surface the most valuable content so the reader skips the noise. Prioritize by:
+1. ENGAGEMENT — High likes/retweets indicate resonance
+2. PATTERNS — Multiple tweets on the same topic = signal worth grouping
+3. SIGNAL DENSITY — Primary sources > commentary > retweets
+
+SECTIONS (use exactly these in this order, skip any section with zero items):
+
+{sections_block}
+
+If a big theme dominates (5+ tweets), add a BONUS section with a custom emoji+name (e.g., "🚀 *Breaking Topic*") — place it after {first_emoji} {first_name}.
+
+FORMATTING RULES (WhatsApp-compatible markdown):
+- Each item: 1-2 sentence summary with *bold* key phrase
+- End each item with: @author link
+- Link format: https://x.com/{{username}}/status/{{id}}
+- Group related content (quote + original, reactions to same news) into ONE item
+- Skip pure retweets unless they add unique context
+- Non-English: translate, add [Language] tag
+- Keep the whole digest CONCISE — aim for 2000-3000 chars total
+- Use bullet points (-)
+- Section headers: ## emoji *Section Name*
+
+EXAMPLE OUTPUT:
+
+{example_block}
+
+Do NOT include any preamble, sign-off, or commentary outside the sections."""
 
 
 def format_empty_digest(list_name: str, config: Dict[str, Any]) -> str:
@@ -226,7 +265,7 @@ def format_sparse_digest(tweets: List[Tweet], config: Dict[str, Any]) -> str:
     lines = [
         f"{emoji} *{display_name} Digest* — {date_str}",
         "",
-        f"📋 *{len(tweets)} tweets since last digest:*",
+        f"{emoji} *{len(tweets)} tweets since last digest:*",
         ""
     ]
     
@@ -240,38 +279,47 @@ def format_sparse_digest(tweets: List[Tweet], config: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def split_digest(digest: str, max_length: int = MAX_MESSAGE_LENGTH) -> List[str]:
+def split_digest(
+    digest: str,
+    max_length: int = MAX_MESSAGE_LENGTH,
+    sections: Optional[List[Dict[str, Any]]] = None
+) -> List[str]:
     """
     Split long digest into multiple messages at section boundaries.
     
     Args:
         digest: Full digest text
         max_length: Maximum length per message
+        sections: Optional list of section dicts with 'emoji' keys for split points
         
     Returns:
         List of message parts, with part indicators if split
         
     Split priority:
-    1. Section headers (🔥, 💡, 🚀, etc.)
-    2. Bold item starts (*text*)
-    3. Paragraph breaks
-    4. Hard split (emergency)
+    1. Section headers (from configured section emojis)
+    2. Any ## header (markdown section)
+    3. Bold item starts (*text*)
+    4. Paragraph breaks
+    5. Hard split (emergency)
     """
     if len(digest) <= max_length:
         return [digest]
     
-    # Split markers in priority order
-    split_markers = [
-        "\n\n🔥",    # Top section
-        "\n\n💡",    # Worth Noting section  
-        "\n\n🚀",    # Topical sections
-        "\n\n🛠️",
-        "\n\n📜",
-        "\n\n💰",
-        "\n\n🎯",
+    # Build split markers dynamically from configured sections
+    split_markers = []
+    if sections:
+        for section in sections:
+            emoji = section.get("emoji")
+            if emoji:
+                split_markers.append(f"\n\n{emoji}")
+                split_markers.append(f"\n\n## {emoji}")
+    
+    # Generic fallbacks (works for any section structure)
+    split_markers.extend([
+        "\n\n## ",   # Any markdown section header
         "\n\n*",     # Any bold item start
         "\n\n",      # Paragraph break (fallback)
-    ]
+    ])
     
     parts = []
     remaining = digest

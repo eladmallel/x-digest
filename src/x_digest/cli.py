@@ -517,8 +517,9 @@ def _deliver_digest(
     recipient = delivery_config.get("whatsapp", {}).get("recipient", "") or \
                 delivery_config.get("telegram", {}).get("chat_id", "")
 
-    # Split digest if too long
-    parts = split_digest(digest_text)
+    # Split digest if too long (use configured sections for smart splitting)
+    sections = list_config.get("sections", [])
+    parts = split_digest(digest_text, sections=sections)
     print(f"   Sending {len(parts)} message(s)...")
 
     retry_config = config.get("retry", {})
