@@ -333,7 +333,8 @@ class TestCmdRun:
             dry_run=True,
             force=True,
             preview=True,
-            hours=6.0
+            hours=6.0,
+            no_artifacts=False
         )
 
 

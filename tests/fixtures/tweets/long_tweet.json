@@ -1,0 +1,16 @@
+[
+  {
+    "id": "2019123973615939810",
+    "text": "I've been thinking a lot about the state of AI development tooling and I want to share a comprehensive breakdown of what's working, what's not, and where I think we're heading.\n\nFirst, the good: code generation has gotten remarkably good at boilerplate and patterns. If you're writing standard CRUD operations, API endpoints, or test scaffolding, the time savings are real and substantial. I've measured a consistent 3-4x speedup on these tasks across our team of 12 engineers.\n\nSecond, context windows matter more than model size. We switched from a larger model with 8K context to a smaller model with 128K context and our completion quality went up dramatically. The ability to feed in the entire codebase context makes a massive difference for real-world development.\n\nThird — and this is the controversial one — I think AI-assisted development is widening the gap between senior and junior developers, not closing it. Senior devs know what to ask for and can verify the output. Junior devs sometimes accept incorrect suggestions because they lack the experience to evaluate them. We need better tooling for verification and explanation.\n\nFinally, the ecosystem is moving too fast. We've evaluated 7 different AI coding tools in the past 3 months and each one has different strengths. The fragmentation is real and it's exhausting. I hope we see some consolidation in 2026.\n\nWhat's your experience been? Would love to hear from other engineering leads managing this transition.",
+    "createdAt": "Wed Feb 04 21:00:00 +0000 2026",
+    "conversationId": "2019123973615939810",
+    "author": {
+      "username": "eng_lead_sarah",
+      "name": "Sarah Chen | Engineering"
+    },
+    "authorId": "88888",
+    "replyCount": 47,
+    "retweetCount": 89,
+    "likeCount": 312
+  }
+]

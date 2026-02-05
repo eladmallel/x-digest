@@ -1,0 +1,47 @@
+[
+  {
+    "id": "2019123973615939803",
+    "text": "The second point is that we need better benchmarks for real-world usage. Current benchmarks test narrow skills but miss how people actually use these tools. (2/4)",
+    "createdAt": "Wed Feb 04 20:01:30 +0000 2026",
+    "conversationId": "2019123973615939801",
+    "author": {
+      "username": "mlresearcher",
+      "name": "ML Researcher"
+    },
+    "authorId": "55555",
+    "replyCount": 5,
+    "retweetCount": 12,
+    "likeCount": 45,
+    "inReplyToStatusId": "2019123973615939801"
+  },
+  {
+    "id": "2019123973615939804",
+    "text": "Third, the cost of inference is dropping faster than anyone predicted. What cost $10 in compute 6 months ago now costs $0.50. This changes what's economically viable. (3/4)",
+    "createdAt": "Wed Feb 04 20:02:00 +0000 2026",
+    "conversationId": "2019123973615939801",
+    "author": {
+      "username": "mlresearcher",
+      "name": "ML Researcher"
+    },
+    "authorId": "55555",
+    "replyCount": 8,
+    "retweetCount": 20,
+    "likeCount": 78,
+    "inReplyToStatusId": "2019123973615939803"
+  },
+  {
+    "id": "2019123973615939805",
+    "text": "Finally, I think the biggest unlock is in agents that can reliably use tools. We're not there yet, but we're close. The gap between demo and production is shrinking fast. (4/4) /end",
+    "createdAt": "Wed Feb 04 20:02:30 +0000 2026",
+    "conversationId": "2019123973615939801",
+    "author": {
+      "username": "mlresearcher",
+      "name": "ML Researcher"
+    },
+    "authorId": "55555",
+    "replyCount": 14,
+    "retweetCount": 35,
+    "likeCount": 112,
+    "inReplyToStatusId": "2019123973615939804"
+  }
+]

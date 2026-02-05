@@ -1564,18 +1564,18 @@ def test_watch_skips_if_recent(mock_pipeline):
 ### Milestone 6.3: Logging
 
 **Tasks:**
-- [ ] Rotating file logger (5MB max)
-- [ ] Configurable log level
-- [ ] Structured log format with timestamps
+- [x] Rotating file logger (5MB max)
+- [x] Configurable log level
+- [x] Structured log format with timestamps
 
 ---
 
 ### Milestone 6.4: Crontab Generation
 
 **Tasks:**
-- [ ] Parse schedules from config
-- [ ] Output valid crontab syntax using `x-digest run` commands
-- [ ] Stale crontab detection
+- [x] Parse schedules from config
+- [x] Output valid crontab syntax using `x-digest run` commands
+- [x] Stale crontab detection
 
 **Unit Tests:**
 ```python

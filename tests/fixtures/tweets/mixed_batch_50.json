@@ -1,81 +1,878 @@
 [
   {
-    "id": "2019123973615939775",
-    "text": "Just shipped a new feature in our API that allows real-time streaming of model outputs. The latency improvements are incredible!",
-    "createdAt": "Wed Feb 04 19:00:43 +0000 2026",
-    "conversationId": "2019123973615939775",
-    "author": {"username": "devlead", "name": "Dev Lead"},
-    "authorId": "12345",
-    "replyCount": 8,
-    "retweetCount": 15,
-    "likeCount": 42
+    "id": "2019123973615940000",
+    "text": "Just released v2.0 of our open source ML framework. Major performance improvements and new GPU support!",
+    "createdAt": "Wed Feb 04 10:00:00 +0000 2026",
+    "conversationId": "2019123973615940000",
+    "author": {
+      "username": "user_1",
+      "name": "User 1"
+    },
+    "authorId": "10000",
+    "replyCount": 3,
+    "retweetCount": 5,
+    "likeCount": 12
   },
   {
-    "id": "2019123973615939776",
-    "text": "🧵 Thread about the future of AI development. Let me share some thoughts on where we're heading... (1/3)",
-    "createdAt": "Wed Feb 04 19:05:00 +0000 2026", 
-    "conversationId": "2019123973615939776",
-    "author": {"username": "aithinker", "name": "AI Researcher"},
-    "authorId": "67890",
-    "replyCount": 25,
+    "id": "2019123973615940001",
+    "text": "Hot take: most AI benchmarks measure the wrong things. We need benchmarks that test real-world workflows, not trivia.",
+    "createdAt": "Wed Feb 04 11:05:00 +0000 2026",
+    "conversationId": "2019123973615940001",
+    "author": {
+      "username": "user_2",
+      "name": "User 2"
+    },
+    "authorId": "10001",
+    "replyCount": 6,
+    "retweetCount": 10,
+    "likeCount": 24
+  },
+  {
+    "id": "2019123973615940002",
+    "text": "Interesting paper on sparse attention mechanisms. Claims 10x speedup with minimal quality loss on long contexts.",
+    "createdAt": "Wed Feb 04 12:10:00 +0000 2026",
+    "conversationId": "2019123973615940002",
+    "author": {
+      "username": "user_3",
+      "name": "User 3"
+    },
+    "authorId": "10002",
+    "replyCount": 9,
+    "retweetCount": 15,
+    "likeCount": 36
+  },
+  {
+    "id": "2019123973615940003",
+    "text": "TIL you can use WASM to run inference in the browser with near-native speed. The web platform keeps getting better.",
+    "createdAt": "Wed Feb 04 13:15:00 +0000 2026",
+    "conversationId": "2019123973615940003",
+    "author": {
+      "username": "user_4",
+      "name": "User 4"
+    },
+    "authorId": "10003",
+    "replyCount": 12,
+    "retweetCount": 20,
+    "likeCount": 48
+  },
+  {
+    "id": "2019123973615940004",
+    "text": "Spent the weekend building a RAG pipeline with Claude. Key insight: smaller chunks with overlap > larger chunks.",
+    "createdAt": "Wed Feb 04 14:20:00 +0000 2026",
+    "conversationId": "2019123973615940004",
+    "author": {
+      "username": "user_5",
+      "name": "User 5"
+    },
+    "authorId": "10004",
+    "replyCount": 15,
+    "retweetCount": 25,
+    "likeCount": 60
+  },
+  {
+    "id": "2019123973615940005",
+    "text": "The gap between GPT-4 and open source models has shrunk dramatically in the last 6 months. Competition is healthy.",
+    "createdAt": "Wed Feb 04 15:25:00 +0000 2026",
+    "conversationId": "2019123973615940005",
+    "author": {
+      "username": "user_6",
+      "name": "User 6"
+    },
+    "authorId": "10005",
+    "replyCount": 18,
+    "retweetCount": 30,
+    "likeCount": 72
+  },
+  {
+    "id": "2019123973615940006",
+    "text": "New blog post: How we reduced our inference costs by 80% using quantization and batching. Link in thread.",
+    "createdAt": "Wed Feb 04 16:30:00 +0000 2026",
+    "conversationId": "2019123973615940006",
+    "author": {
+      "username": "user_7",
+      "name": "User 7"
+    },
+    "authorId": "10006",
+    "replyCount": 21,
+    "retweetCount": 35,
+    "likeCount": 84
+  },
+  {
+    "id": "2019123973615940007",
+    "text": "Unpopular opinion: most companies dont need fine-tuned models. Good prompting with a frontier model beats fine-tuning for 90% of use cases.",
+    "createdAt": "Wed Feb 04 17:35:00 +0000 2026",
+    "conversationId": "2019123973615940007",
+    "author": {
+      "username": "user_8",
+      "name": "User 8"
+    },
+    "authorId": "10007",
+    "replyCount": 24,
+    "retweetCount": 40,
+    "likeCount": 96
+  },
+  {
+    "id": "2019123973615940008",
+    "text": "Just discovered an amazing VS Code extension for AI-assisted debugging. It explains stack traces in plain English.",
+    "createdAt": "Wed Feb 04 18:40:00 +0000 2026",
+    "conversationId": "2019123973615940008",
+    "author": {
+      "username": "user_9",
+      "name": "User 9"
+    },
+    "authorId": "10008",
+    "replyCount": 27,
     "retweetCount": 45,
+    "likeCount": 108
+  },
+  {
+    "id": "2019123973615940009",
+    "text": "The developer experience for deploying ML models has improved 100x in 3 years. What used to take weeks now takes minutes.",
+    "createdAt": "Wed Feb 04 19:45:00 +0000 2026",
+    "conversationId": "2019123973615940009",
+    "author": {
+      "username": "user_10",
+      "name": "User 10"
+    },
+    "authorId": "10009",
+    "replyCount": 30,
+    "retweetCount": 50,
     "likeCount": 120
   },
   {
-    "id": "2019123973615939777",
-    "text": "The hardware constraints are pushing us toward more efficient algorithms. We can't just scale compute forever - we need smarter architectures. (2/3)",
-    "createdAt": "Wed Feb 04 19:05:30 +0000 2026",
-    "conversationId": "2019123973615939776", 
-    "author": {"username": "aithinker", "name": "AI Researcher"},
-    "authorId": "67890",
-    "inReplyToStatusId": "2019123973615939776",
-    "replyCount": 8,
-    "retweetCount": 19,
-    "likeCount": 76
+    "id": "2019123973615940010",
+    "text": "Reminder that the best AI tool is the one your team actually uses consistently. Culture > capability.",
+    "createdAt": "Wed Feb 04 20:50:00 +0000 2026",
+    "conversationId": "2019123973615940010",
+    "author": {
+      "username": "user_11",
+      "name": "User 11"
+    },
+    "authorId": "10010",
+    "replyCount": 33,
+    "retweetCount": 55,
+    "likeCount": 132
   },
   {
-    "id": "2019123973615939778",
-    "text": "Finally, I believe we're moving toward more collaborative AI systems - not just human-AI collaboration, but AI-AI collaboration. (3/3) /end",
-    "createdAt": "Wed Feb 04 19:06:00 +0000 2026",
-    "conversationId": "2019123973615939776",
-    "author": {"username": "aithinker", "name": "AI Researcher"}, 
-    "authorId": "67890",
-    "inReplyToStatusId": "2019123973615939777",
+    "id": "2019123973615940011",
+    "text": "עברתי לעבוד עם קלוד קוד ואני לא מסתכל אחורה. הפרודוקטיביות עלתה משמעותית בפרויקטים גדולים.",
+    "createdAt": "Wed Feb 04 21:55:00 +0000 2026",
+    "conversationId": "2019123973615940011",
+    "author": {
+      "username": "user_12",
+      "name": "User 12"
+    },
+    "authorId": "10011",
+    "replyCount": 36,
+    "retweetCount": 60,
+    "likeCount": 144
+  },
+  {
+    "id": "2019123973615940012",
+    "text": "Fascinating thread by @mlresearcher on the economics of inference. The cost curves are steeper than Moores law.",
+    "createdAt": "Wed Feb 04 10:00:00 +0000 2026",
+    "conversationId": "2019123973615940012",
+    "author": {
+      "username": "user_13",
+      "name": "User 13"
+    },
+    "authorId": "10012",
+    "replyCount": 39,
+    "retweetCount": 65,
+    "likeCount": 156
+  },
+  {
+    "id": "2019123973615940013",
+    "text": "PSA: Always validate LLM outputs before showing them to users. We caught a subtle hallucination that would have been embarrassing.",
+    "createdAt": "Wed Feb 04 11:05:00 +0000 2026",
+    "conversationId": "2019123973615940013",
+    "author": {
+      "username": "user_14",
+      "name": "User 14"
+    },
+    "authorId": "10013",
+    "replyCount": 42,
+    "retweetCount": 70,
+    "likeCount": 168
+  },
+  {
+    "id": "2019123973615940014",
+    "text": "My prediction for 2026: the biggest AI breakthroughs wont come from bigger models but from better integration with existing tools and workflows.",
+    "createdAt": "Wed Feb 04 12:10:00 +0000 2026",
+    "conversationId": "2019123973615940014",
+    "author": {
+      "username": "user_15",
+      "name": "User 15"
+    },
+    "authorId": "10014",
+    "replyCount": 45,
+    "retweetCount": 75,
+    "likeCount": 180
+  },
+  {
+    "id": "2019123973615940015",
+    "text": "Deep dive into how we built our real-time ML pipeline. This took 6 months and I want to share everything we learned. (1/10)",
+    "createdAt": "Wed Feb 04 14:00:00 +0000 2026",
+    "conversationId": "2019123973615940015",
+    "author": {
+      "username": "ml_engineer_pro",
+      "name": "ML Engineer Pro"
+    },
+    "authorId": "30000",
+    "replyCount": 10,
+    "retweetCount": 20,
+    "likeCount": 50
+  },
+  {
+    "id": "2019123973615940016",
+    "text": "Step 1: Data ingestion. We process 2M events/sec using Kafka. The key was partitioning by user_id to maintain ordering. (2/10)",
+    "createdAt": "Wed Feb 04 14:01:00 +0000 2026",
+    "conversationId": "2019123973615940015",
+    "author": {
+      "username": "ml_engineer_pro",
+      "name": "ML Engineer Pro"
+    },
+    "authorId": "30000",
+    "replyCount": 12,
+    "retweetCount": 25,
+    "likeCount": 65,
+    "inReplyToStatusId": "2019123973615940015"
+  },
+  {
+    "id": "2019123973615940017",
+    "text": "Step 2: Feature engineering. We built a feature store that serves both batch and real-time features. This eliminated training-serving skew. (3/10)",
+    "createdAt": "Wed Feb 04 14:02:00 +0000 2026",
+    "conversationId": "2019123973615940015",
+    "author": {
+      "username": "ml_engineer_pro",
+      "name": "ML Engineer Pro"
+    },
+    "authorId": "30000",
+    "replyCount": 14,
+    "retweetCount": 30,
+    "likeCount": 80,
+    "inReplyToStatusId": "2019123973615940016"
+  },
+  {
+    "id": "2019123973615940018",
+    "text": "Step 3: Model serving. We use TensorRT for GPU inference and ONNX Runtime for CPU fallback. Latency p99 is under 50ms. (4/10)",
+    "createdAt": "Wed Feb 04 14:03:00 +0000 2026",
+    "conversationId": "2019123973615940015",
+    "author": {
+      "username": "ml_engineer_pro",
+      "name": "ML Engineer Pro"
+    },
+    "authorId": "30000",
+    "replyCount": 16,
+    "retweetCount": 35,
+    "likeCount": 95,
+    "inReplyToStatusId": "2019123973615940017"
+  },
+  {
+    "id": "2019123973615940019",
+    "text": "Step 4: A/B testing framework. Every model change goes through a staged rollout with automatic rollback on regression. (5/10)",
+    "createdAt": "Wed Feb 04 14:04:00 +0000 2026",
+    "conversationId": "2019123973615940015",
+    "author": {
+      "username": "ml_engineer_pro",
+      "name": "ML Engineer Pro"
+    },
+    "authorId": "30000",
+    "replyCount": 18,
+    "retweetCount": 40,
+    "likeCount": 110,
+    "inReplyToStatusId": "2019123973615940018"
+  },
+  {
+    "id": "2019123973615940020",
+    "text": "Step 5: Monitoring. We track model drift using PSI scores and alert when feature distributions shift beyond thresholds. (6/10)",
+    "createdAt": "Wed Feb 04 14:05:00 +0000 2026",
+    "conversationId": "2019123973615940015",
+    "author": {
+      "username": "ml_engineer_pro",
+      "name": "ML Engineer Pro"
+    },
+    "authorId": "30000",
+    "replyCount": 20,
+    "retweetCount": 45,
+    "likeCount": 125,
+    "inReplyToStatusId": "2019123973615940019"
+  },
+  {
+    "id": "2019123973615940021",
+    "text": "Step 6: Cost optimization. Moving to spot instances and right-sizing our GPU fleet saved us $2M/year. (7/10)",
+    "createdAt": "Wed Feb 04 14:06:00 +0000 2026",
+    "conversationId": "2019123973615940015",
+    "author": {
+      "username": "ml_engineer_pro",
+      "name": "ML Engineer Pro"
+    },
+    "authorId": "30000",
     "replyCount": 22,
-    "retweetCount": 67,
-    "likeCount": 134
+    "retweetCount": 50,
+    "likeCount": 140,
+    "inReplyToStatusId": "2019123973615940020"
   },
   {
-    "id": "2019123973615939779",
-    "text": "RT @devlead: Just shipped a new feature in our API that allows real-time streaming of model outputs. The latency improvements are incredible!",
-    "createdAt": "Wed Feb 04 19:07:00 +0000 2026",
-    "conversationId": "2019123973615939779",
-    "author": {"username": "retweet_user", "name": "Retweet User"},
-    "authorId": "11111",
+    "id": "2019123973615940022",
+    "text": "Step 7: Team structure. We have embedded ML engineers in product teams, not a centralized ML team. This reduced handoff friction. (8/10)",
+    "createdAt": "Wed Feb 04 14:07:00 +0000 2026",
+    "conversationId": "2019123973615940015",
+    "author": {
+      "username": "ml_engineer_pro",
+      "name": "ML Engineer Pro"
+    },
+    "authorId": "30000",
+    "replyCount": 24,
+    "retweetCount": 55,
+    "likeCount": 155,
+    "inReplyToStatusId": "2019123973615940021"
+  },
+  {
+    "id": "2019123973615940023",
+    "text": "Step 8: Documentation. Every model has a model card documenting training data, limitations, and failure modes. Non-negotiable. (9/10)",
+    "createdAt": "Wed Feb 04 14:08:00 +0000 2026",
+    "conversationId": "2019123973615940015",
+    "author": {
+      "username": "ml_engineer_pro",
+      "name": "ML Engineer Pro"
+    },
+    "authorId": "30000",
+    "replyCount": 26,
+    "retweetCount": 60,
+    "likeCount": 170,
+    "inReplyToStatusId": "2019123973615940022"
+  },
+  {
+    "id": "2019123973615940024",
+    "text": "The biggest lesson: ML systems are software systems first. Apply all the same engineering best practices. Dont treat ML as magic. (10/10) /end",
+    "createdAt": "Wed Feb 04 14:09:00 +0000 2026",
+    "conversationId": "2019123973615940015",
+    "author": {
+      "username": "ml_engineer_pro",
+      "name": "ML Engineer Pro"
+    },
+    "authorId": "30000",
+    "replyCount": 28,
+    "retweetCount": 65,
+    "likeCount": 185,
+    "inReplyToStatusId": "2019123973615940023"
+  },
+  {
+    "id": "2019123973615940025",
+    "text": "Great point! We saw the same at our company.",
+    "createdAt": "Wed Feb 04 15:30:00 +0000 2026",
+    "conversationId": "2019123973615940025",
+    "author": {
+      "username": "quoter_1",
+      "name": "Quoter 1"
+    },
+    "authorId": "40000",
     "replyCount": 0,
     "retweetCount": 0,
-    "likeCount": 3
+    "likeCount": 10,
+    "quotedTweet": {
+      "id": "2019123973615940000",
+      "text": "Just released v2.0 of our open source ML framework. Major performance improvements and new GPU support!",
+      "createdAt": "Wed Feb 04 10:00:00 +0000 2026",
+      "conversationId": "2019123973615940000",
+      "author": {
+        "username": "user_1",
+        "name": "User 1"
+      },
+      "authorId": "10000",
+      "replyCount": 3,
+      "retweetCount": 5,
+      "likeCount": 12
+    }
   },
   {
-    "id": "2019123973615939780",
-    "text": "This is exactly what we need for real-time applications! 🔥",
-    "createdAt": "Wed Feb 04 19:08:00 +0000 2026",
-    "conversationId": "2019123973615939780",
-    "author": {"username": "realtimedev", "name": "Real-time Developer"},
-    "authorId": "22222",
+    "id": "2019123973615940026",
+    "text": "This paper is a must-read. The results are reproducible.",
+    "createdAt": "Wed Feb 04 15:35:00 +0000 2026",
+    "conversationId": "2019123973615940026",
+    "author": {
+      "username": "quoter_2",
+      "name": "Quoter 2"
+    },
+    "authorId": "40001",
+    "replyCount": 2,
+    "retweetCount": 3,
+    "likeCount": 18,
+    "quotedTweet": {
+      "id": "2019123973615940002",
+      "text": "Interesting paper on sparse attention mechanisms. Claims 10x speedup with minimal quality loss on long contexts.",
+      "createdAt": "Wed Feb 04 12:10:00 +0000 2026",
+      "conversationId": "2019123973615940002",
+      "author": {
+        "username": "user_3",
+        "name": "User 3"
+      },
+      "authorId": "10002",
+      "replyCount": 9,
+      "retweetCount": 15,
+      "likeCount": 36
+    }
+  },
+  {
+    "id": "2019123973615940027",
+    "text": "100% agree. Open source is catching up fast.",
+    "createdAt": "Wed Feb 04 15:40:00 +0000 2026",
+    "conversationId": "2019123973615940027",
+    "author": {
+      "username": "quoter_3",
+      "name": "Quoter 3"
+    },
+    "authorId": "40002",
+    "replyCount": 4,
+    "retweetCount": 6,
+    "likeCount": 26,
+    "quotedTweet": {
+      "id": "2019123973615940005",
+      "text": "The gap between GPT-4 and open source models has shrunk dramatically in the last 6 months. Competition is healthy.",
+      "createdAt": "Wed Feb 04 15:25:00 +0000 2026",
+      "conversationId": "2019123973615940005",
+      "author": {
+        "username": "user_6",
+        "name": "User 6"
+      },
+      "authorId": "10005",
+      "replyCount": 18,
+      "retweetCount": 30,
+      "likeCount": 72
+    }
+  },
+  {
+    "id": "2019123973615940028",
+    "text": "This matches our experience. Prompting >> fine-tuning for most cases.",
+    "createdAt": "Wed Feb 04 15:45:00 +0000 2026",
+    "conversationId": "2019123973615940028",
+    "author": {
+      "username": "quoter_4",
+      "name": "Quoter 4"
+    },
+    "authorId": "40003",
+    "replyCount": 6,
+    "retweetCount": 9,
+    "likeCount": 34,
+    "quotedTweet": {
+      "id": "2019123973615940007",
+      "text": "Unpopular opinion: most companies dont need fine-tuned models. Good prompting with a frontier model beats fine-tuning for 90% of use cases.",
+      "createdAt": "Wed Feb 04 17:35:00 +0000 2026",
+      "conversationId": "2019123973615940007",
+      "author": {
+        "username": "user_8",
+        "name": "User 8"
+      },
+      "authorId": "10007",
+      "replyCount": 24,
+      "retweetCount": 40,
+      "likeCount": 96
+    }
+  },
+  {
+    "id": "2019123973615940029",
+    "text": "Totally agree with the Hebrew sentiment here.",
+    "createdAt": "Wed Feb 04 15:50:00 +0000 2026",
+    "conversationId": "2019123973615940029",
+    "author": {
+      "username": "quoter_5",
+      "name": "Quoter 5"
+    },
+    "authorId": "40004",
+    "replyCount": 8,
+    "retweetCount": 12,
+    "likeCount": 42,
+    "quotedTweet": {
+      "id": "2019123973615940011",
+      "text": "עברתי לעבוד עם קלוד קוד ואני לא מסתכל אחורה. הפרודוקטיביות עלתה משמעותית בפרויקטים גדולים.",
+      "createdAt": "Wed Feb 04 21:55:00 +0000 2026",
+      "conversationId": "2019123973615940011",
+      "author": {
+        "username": "user_12",
+        "name": "User 12"
+      },
+      "authorId": "10011",
+      "replyCount": 36,
+      "retweetCount": 60,
+      "likeCount": 144
+    }
+  },
+  {
+    "id": "2019123973615940030",
+    "text": "Totally agree with this take!",
+    "createdAt": "Wed Feb 04 16:00:00 +0000 2026",
+    "conversationId": "2019123973615940000",
+    "author": {
+      "username": "replier_1",
+      "name": "Replier 1"
+    },
+    "authorId": "50000",
+    "replyCount": 0,
+    "retweetCount": 0,
+    "likeCount": 1,
+    "inReplyToStatusId": "2019123973615940000"
+  },
+  {
+    "id": "2019123973615940031",
+    "text": "Have you tried using distillation instead? Works great for us.",
+    "createdAt": "Wed Feb 04 16:10:00 +0000 2026",
+    "conversationId": "2019123973615940001",
+    "author": {
+      "username": "replier_2",
+      "name": "Replier 2"
+    },
+    "authorId": "50001",
+    "replyCount": 0,
+    "retweetCount": 0,
+    "likeCount": 2,
+    "inReplyToStatusId": "2019123973615940001"
+  },
+  {
+    "id": "2019123973615940032",
+    "text": "Can you share the paper link?",
+    "createdAt": "Wed Feb 04 16:20:00 +0000 2026",
+    "conversationId": "2019123973615940002",
+    "author": {
+      "username": "replier_3",
+      "name": "Replier 3"
+    },
+    "authorId": "50002",
+    "replyCount": 0,
+    "retweetCount": 0,
+    "likeCount": 3,
+    "inReplyToStatusId": "2019123973615940002"
+  },
+  {
+    "id": "2019123973615940033",
+    "text": "We had a different experience. Fine-tuning worked better for our domain-specific use case.",
+    "createdAt": "Wed Feb 04 16:30:00 +0000 2026",
+    "conversationId": "2019123973615940003",
+    "author": {
+      "username": "replier_4",
+      "name": "Replier 4"
+    },
+    "authorId": "50003",
+    "replyCount": 0,
+    "retweetCount": 0,
+    "likeCount": 4,
+    "inReplyToStatusId": "2019123973615940003"
+  },
+  {
+    "id": "2019123973615940034",
+    "text": "This is really helpful, thanks for sharing!",
+    "createdAt": "Wed Feb 04 16:40:00 +0000 2026",
+    "conversationId": "2019123973615940004",
+    "author": {
+      "username": "replier_5",
+      "name": "Replier 5"
+    },
+    "authorId": "50004",
+    "replyCount": 0,
+    "retweetCount": 0,
+    "likeCount": 5,
+    "inReplyToStatusId": "2019123973615940004"
+  },
+  {
+    "id": "2019123973615940035",
+    "text": "RT @user_4: TIL you can use WASM to run inference in the browser with near-native speed. The web platform keeps getting better.",
+    "createdAt": "Wed Feb 04 17:00:00 +0000 2026",
+    "conversationId": "2019123973615940035",
+    "author": {
+      "username": "retweeter_1",
+      "name": "Retweeter 1"
+    },
+    "authorId": "60000",
+    "replyCount": 0,
+    "retweetCount": 0,
+    "likeCount": 0
+  },
+  {
+    "id": "2019123973615940036",
+    "text": "RT @user_5: Spent the weekend building a RAG pipeline with Claude. Key insight: smaller chunks with overlap > larger chunks.",
+    "createdAt": "Wed Feb 04 17:12:00 +0000 2026",
+    "conversationId": "2019123973615940036",
+    "author": {
+      "username": "retweeter_2",
+      "name": "Retweeter 2"
+    },
+    "authorId": "60001",
+    "replyCount": 0,
+    "retweetCount": 0,
+    "likeCount": 0
+  },
+  {
+    "id": "2019123973615940037",
+    "text": "RT @user_6: The gap between GPT-4 and open source models has shrunk dramatically in the last 6 months. Competition is healthy.",
+    "createdAt": "Wed Feb 04 17:24:00 +0000 2026",
+    "conversationId": "2019123973615940037",
+    "author": {
+      "username": "retweeter_3",
+      "name": "Retweeter 3"
+    },
+    "authorId": "60002",
+    "replyCount": 0,
+    "retweetCount": 0,
+    "likeCount": 0
+  },
+  {
+    "id": "2019123973615940038",
+    "text": "RT @user_7: New blog post: How we reduced our inference costs by 80% using quantization and batching. Link in thread.",
+    "createdAt": "Wed Feb 04 17:36:00 +0000 2026",
+    "conversationId": "2019123973615940038",
+    "author": {
+      "username": "retweeter_4",
+      "name": "Retweeter 4"
+    },
+    "authorId": "60003",
+    "replyCount": 0,
+    "retweetCount": 0,
+    "likeCount": 0
+  },
+  {
+    "id": "2019123973615940039",
+    "text": "RT @user_8: Unpopular opinion: most companies dont need fine-tuned models. Good prompting with a frontier model beats fine-tuning for 90% of use cases.",
+    "createdAt": "Wed Feb 04 17:48:00 +0000 2026",
+    "conversationId": "2019123973615940039",
+    "author": {
+      "username": "retweeter_5",
+      "name": "Retweeter 5"
+    },
+    "authorId": "60004",
+    "replyCount": 0,
+    "retweetCount": 0,
+    "likeCount": 0
+  },
+  {
+    "id": "2019123973615940040",
+    "text": "Screenshot of our new dashboard with real-time model metrics",
+    "createdAt": "Wed Feb 04 18:00:00 +0000 2026",
+    "conversationId": "2019123973615940040",
+    "author": {
+      "username": "media_user_1",
+      "name": "Media User 1"
+    },
+    "authorId": "70000",
+    "replyCount": 5,
+    "retweetCount": 10,
+    "likeCount": 30,
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/fake_img_0_0.jpg",
+        "width": 1200,
+        "height": 800,
+        "previewUrl": "https://pbs.twimg.com/media/fake_img_0_0_thumb.jpg"
+      }
+    ]
+  },
+  {
+    "id": "2019123973615940041",
+    "text": "Architecture diagram for our new RAG system",
+    "createdAt": "Wed Feb 04 18:10:00 +0000 2026",
+    "conversationId": "2019123973615940041",
+    "author": {
+      "username": "media_user_2",
+      "name": "Media User 2"
+    },
+    "authorId": "70001",
+    "replyCount": 8,
+    "retweetCount": 15,
+    "likeCount": 50,
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/fake_img_1_0.jpg",
+        "width": 1200,
+        "height": 800,
+        "previewUrl": "https://pbs.twimg.com/media/fake_img_1_0_thumb.jpg"
+      },
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/fake_img_1_1.jpg",
+        "width": 1200,
+        "height": 800,
+        "previewUrl": "https://pbs.twimg.com/media/fake_img_1_1_thumb.jpg"
+      }
+    ]
+  },
+  {
+    "id": "2019123973615940042",
+    "text": "Demo video of our AI coding assistant in action",
+    "createdAt": "Wed Feb 04 18:20:00 +0000 2026",
+    "conversationId": "2019123973615940042",
+    "author": {
+      "username": "media_user_3",
+      "name": "Media User 3"
+    },
+    "authorId": "70002",
+    "replyCount": 11,
+    "retweetCount": 20,
+    "likeCount": 70,
+    "media": [
+      {
+        "type": "video",
+        "url": "https://video.twimg.com/ext_tw_video/fake_vid_2.mp4",
+        "width": 1920,
+        "height": 1080,
+        "previewUrl": "https://pbs.twimg.com/ext_tw_video_thumb/fake_vid_2_thumb.jpg",
+        "videoUrl": "https://video.twimg.com/ext_tw_video/fake_vid_2.mp4",
+        "durationMs": 40000
+      }
+    ]
+  },
+  {
+    "id": "2019123973615940043",
+    "text": "Benchmark results across 5 different models",
+    "createdAt": "Wed Feb 04 18:30:00 +0000 2026",
+    "conversationId": "2019123973615940043",
+    "author": {
+      "username": "media_user_4",
+      "name": "Media User 4"
+    },
+    "authorId": "70003",
+    "replyCount": 14,
+    "retweetCount": 25,
+    "likeCount": 90,
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/fake_img_3_0.jpg",
+        "width": 1200,
+        "height": 800,
+        "previewUrl": "https://pbs.twimg.com/media/fake_img_3_0_thumb.jpg"
+      },
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/fake_img_3_1.jpg",
+        "width": 1200,
+        "height": 800,
+        "previewUrl": "https://pbs.twimg.com/media/fake_img_3_1_thumb.jpg"
+      },
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/fake_img_3_2.jpg",
+        "width": 1200,
+        "height": 800,
+        "previewUrl": "https://pbs.twimg.com/media/fake_img_3_2_thumb.jpg"
+      }
+    ]
+  },
+  {
+    "id": "2019123973615940044",
+    "text": "Our office AI hackathon results! 12 teams, 48 hours",
+    "createdAt": "Wed Feb 04 18:40:00 +0000 2026",
+    "conversationId": "2019123973615940044",
+    "author": {
+      "username": "media_user_5",
+      "name": "Media User 5"
+    },
+    "authorId": "70004",
+    "replyCount": 17,
+    "retweetCount": 30,
+    "likeCount": 110,
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/fake_img_4_0.jpg",
+        "width": 1200,
+        "height": 800,
+        "previewUrl": "https://pbs.twimg.com/media/fake_img_4_0_thumb.jpg"
+      },
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/fake_img_4_1.jpg",
+        "width": 1200,
+        "height": 800,
+        "previewUrl": "https://pbs.twimg.com/media/fake_img_4_1_thumb.jpg"
+      },
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/fake_img_4_2.jpg",
+        "width": 1200,
+        "height": 800,
+        "previewUrl": "https://pbs.twimg.com/media/fake_img_4_2_thumb.jpg"
+      },
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/fake_img_4_3.jpg",
+        "width": 1200,
+        "height": 800,
+        "previewUrl": "https://pbs.twimg.com/media/fake_img_4_3_thumb.jpg"
+      }
+    ]
+  },
+  {
+    "id": "2019123973615940045",
+    "text": "Continuing on the testing topic: snapshot tests have been a game changer for our UI components. (3/5)",
+    "createdAt": "Wed Feb 04 19:30:00 +0000 2026",
+    "conversationId": "2019123973615940044",
+    "author": {
+      "username": "testing_advocate",
+      "name": "Testing Advocate"
+    },
+    "authorId": "80000",
     "replyCount": 3,
     "retweetCount": 8,
     "likeCount": 25,
-    "quotedTweet": {
-      "id": "2019123973615939775",
-      "text": "Just shipped a new feature in our API that allows real-time streaming of model outputs. The latency improvements are incredible!",
-      "createdAt": "Wed Feb 04 19:00:43 +0000 2026",
-      "conversationId": "2019123973615939775",
-      "author": {"username": "devlead", "name": "Dev Lead"},
-      "authorId": "12345",
-      "replyCount": 8,
-      "retweetCount": 15,
-      "likeCount": 42
-    }
+    "inReplyToStatusId": "2019123973615940044"
+  },
+  {
+    "id": "2019123973615940046",
+    "text": "And dont forget about property-based testing! It catches edge cases you would never think to write manually. (4/5)",
+    "createdAt": "Wed Feb 04 19:32:00 +0000 2026",
+    "conversationId": "2019123973615940044",
+    "author": {
+      "username": "testing_advocate",
+      "name": "Testing Advocate"
+    },
+    "authorId": "80000",
+    "replyCount": 4,
+    "retweetCount": 11,
+    "likeCount": 35,
+    "inReplyToStatusId": "2019123973615940045"
+  },
+  {
+    "id": "2019123973615940047",
+    "text": "To summarize: invest in your test infrastructure. It pays dividends every single day. (5/5) /end",
+    "createdAt": "Wed Feb 04 19:34:00 +0000 2026",
+    "conversationId": "2019123973615940044",
+    "author": {
+      "username": "testing_advocate",
+      "name": "Testing Advocate"
+    },
+    "authorId": "80000",
+    "replyCount": 5,
+    "retweetCount": 14,
+    "likeCount": 45,
+    "inReplyToStatusId": "2019123973615940046"
+  },
+  {
+    "id": "2019123973615940048",
+    "text": "The best way to learn AI engineering is to build real projects. Courses and tutorials only get you so far. Ship something!",
+    "createdAt": "Wed Feb 04 20:00:00 +0000 2026",
+    "conversationId": "2019123973615940048",
+    "author": {
+      "username": "pragmatic_dev",
+      "name": "Pragmatic Developer"
+    },
+    "authorId": "90000",
+    "replyCount": 15,
+    "retweetCount": 40,
+    "likeCount": 200
+  },
+  {
+    "id": "2019123973615940049",
+    "text": "Morning coffee thought: in 5 years, every developer will use AI assistants the way we use IDEs today. Its just part of the workflow, not a separate tool.",
+    "createdAt": "Wed Feb 04 20:30:00 +0000 2026",
+    "conversationId": "2019123973615940049",
+    "author": {
+      "username": "futurist_dev",
+      "name": "Futurist Dev"
+    },
+    "authorId": "90001",
+    "replyCount": 25,
+    "retweetCount": 55,
+    "likeCount": 280
   }
 ]

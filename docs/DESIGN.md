@@ -1800,16 +1800,16 @@ Development follows small, testable milestones. Each milestone must pass its tes
 **Goal:** End-to-end test with real (but sandboxed) data.
 
 **Implementation:**
-- [ ] Test fixture: 50 real tweets (anonymized)
-- [ ] Full pipeline run with mock delivery
-- [ ] Verify all output files created correctly
-- [ ] Performance baseline (< 30s for 50 tweets)
+- [x] Test fixture: 50 real tweets (anonymized)
+- [x] Full pipeline run with mock delivery
+- [x] Verify all output files created correctly
+- [x] Performance baseline (< 30s for 50 tweets)
 
 **Tests:**
-- [ ] Full run produces: raw-tweets.json, pre-summaries.json, prompt.md, digest.md, meta.json
-- [ ] meta.json has accurate token counts and timing
-- [ ] status.json updated correctly
-- [ ] Log file contains expected entries
+- [x] Full run produces: raw-tweets.json, pre-summaries.json, prompt.md, digest.md, meta.json
+- [x] meta.json has accurate token counts and timing
+- [x] status.json updated correctly
+- [x] Log file contains expected entries
 
 **Acceptance:** Can run full pipeline against fixtures, all artifacts correct.
 
