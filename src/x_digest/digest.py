@@ -145,23 +145,68 @@ def build_digest_payload(
     return "\n".join(payload_lines)
 
 
+SECTION_DEFINITIONS = {
+    "top":            ("🔥", "Top", "3-5 highest-signal items. Major launches, breaking news, viral takes."),
+    "dev_tips":       ("🛠️", "Dev Tips", "Tools, techniques, code tips, architecture insights, tutorials."),
+    "hebrew":         ("🇮🇱", "Hebrew", "Hebrew-language tweets. Translate to English, keep [Hebrew] tag."),
+    "israel_hebrew":  ("🇮🇱", "Israel/Hebrew", "Hebrew-language and Israel-related tweets. Translate Hebrew to English, keep [Hebrew] tag."),
+    "deep":           ("🤔", "Deep", "Thought-provoking takes, essays, philosophical observations."),
+    "business":       ("💼", "Business/Investing", "Business insights, investing ideas, market analysis, company strategy."),
+    "geopolitics":    ("🌍", "Geopolitics", "Geopolitical analysis, macro trends, international affairs."),
+}
+
+
 def build_system_prompt(config: Dict[str, Any]) -> str:
     """
     Build system prompt for digest LLM.
     
-    Uses hierarchy: list-specific -> default -> built-in
+    Uses hierarchy: list-specific prompt -> default prompt -> built-in with sections from config
     """
-    # Check for list-specific prompt
+    # Check for list-specific prompt override
     if "prompt" in config:
         return config["prompt"]
     
-    # Check for default prompt
+    # Check for default prompt override
     defaults = config.get("defaults", {})
     if "prompt" in defaults:
         return defaults["prompt"]
     
-    # Built-in default prompt
+    # Built-in prompt, customized with sections from config if available
+    sections = config.get("sections")
+    if sections:
+        return _get_builtin_digest_prompt_with_sections(sections)
+    
     return _get_builtin_digest_prompt()
+
+
+def _get_builtin_digest_prompt_with_sections(section_keys: List[str]) -> str:
+    """Build digest prompt with specific sections from config."""
+    base = _get_builtin_digest_prompt()
+    
+    # Replace the SECTIONS block with config-driven sections
+    section_lines = ["SECTIONS (use exactly these in this order, skip any with zero items):\n"]
+    for key in section_keys:
+        defn = SECTION_DEFINITIONS.get(key)
+        if defn:
+            emoji, name, desc = defn
+            section_lines.append(f"## {emoji} {name}\n{desc}\n")
+        else:
+            # Unknown section — let the LLM figure it out
+            section_lines.append(f"## {key}\n")
+    
+    sections_block = "\n".join(section_lines)
+    
+    # Replace the SECTIONS portion of the built-in prompt
+    marker_start = "SECTIONS (use exactly these"
+    marker_end = "If a big theme dominates"
+    
+    start_idx = base.find(marker_start)
+    end_idx = base.find(marker_end)
+    
+    if start_idx >= 0 and end_idx >= 0:
+        return base[:start_idx] + sections_block + "\n" + base[end_idx:]
+    
+    return base
 
 
 def format_empty_digest(list_name: str, config: Dict[str, Any]) -> str:
@@ -273,28 +318,58 @@ def _format_relative_time(created_at: str) -> str:
 
 def _get_builtin_digest_prompt() -> str:
     """Get built-in digest system prompt."""
-    return """You are a Twitter digest curator helping extract signal from noise.
+    return """You are a Twitter digest curator. Distill a curated list's tweets into a concise, scannable WhatsApp digest.
 
-YOUR GOAL: Surface the most valuable content so the reader doesn't have to scroll through the full feed. Prioritize by:
-1. ENGAGEMENT — High likes/replies/retweets indicate resonance
-2. PATTERNS — If multiple people are discussing the same topic, that's a signal
-3. NOTABLE AUTHORS — Known experts or primary sources over commentators
+GOAL: Surface the most valuable content so the reader skips the noise. Prioritize by:
+1. ENGAGEMENT — High likes/retweets indicate resonance
+2. PATTERNS — Multiple tweets on the same topic = signal worth grouping
+3. SIGNAL DENSITY — Primary sources > commentary > retweets
 
-INPUT: Tweets from a curated list, possibly with pre-summarized threads/long content.
+SECTIONS (use exactly these in this order, skip any section with zero items):
 
-OUTPUT STRUCTURE:
-- Start with 🔥 *Top* (3-5 items) — the most important content
-- Add topical sections if a theme dominates (e.g., "🚀 *Claude Cowork Launch*" if 5+ tweets discuss it)
-- End with 💡 *Worth Noting* (2-4 items) — interesting but not top-tier
-- Skip any section with no content; don't force structure
+## 🔥 Top
+3-5 highest-signal items. Major launches, breaking news, viral takes.
 
-FORMATTING:
-- *bold* for emphasis (WhatsApp-compatible)
-- 1-2 sentences per item, max
-- Format: Summary — @author https://x.com/{username}/status/{id}
-- Group related content (quote + original, reactions to same news)
-- For non-English content: translate to English, prefix with [Language] tag (e.g., [Hebrew], [Spanish])
-- Skip pure retweets unless they add context
+## 🛠️ Dev Tips
+Tools, techniques, code tips, architecture insights, tutorials.
 
-PATTERN RECOGNITION:
-If you notice a theme (product launch, drama, breaking news), create a dedicated section for it. Example: if 6 tweets discuss "Mistral's new speech model", group them under "🎙️ *Mistral Voxtral Launch*" rather than scattering across sections."""
+## 🇮🇱 Hebrew
+Hebrew-language tweets. Translate to English, keep [Hebrew] tag.
+
+## 🤔 Deep
+Thought-provoking takes, essays, philosophical observations about tech/AI.
+
+If a big theme dominates (5+ tweets), add a BONUS section with a custom emoji+name (e.g., "🚀 *Mistral Voxtral Launch*") — place it between 🔥 Top and 🛠️ Dev.
+
+FORMATTING RULES (WhatsApp-compatible markdown):
+- Each item: 1-2 sentence summary with *bold* key phrase
+- End each item with: @author link
+- Link format: https://x.com/{username}/status/{id}
+- Group related content (quote + original, reactions to same news) into ONE item
+- Skip pure retweets unless they add unique context
+- Non-English: translate, add [Language] tag
+- Keep the whole digest CONCISE — aim for 2000-3000 chars total
+- Use bullet points (-)
+- Section headers: ## emoji *Section Name*
+
+EXAMPLE OUTPUT:
+
+## 🔥 Top
+- *Karpathy's 1-year vibe coding retrospective* — lessons from building entirely with AI assistants
+  @karpathy https://x.com/karpathy/status/1234567890
+- *Claude Code /insights command* — reads your history, gives personalized tips (1.3k ❤️)
+  @trq212 https://x.com/trq212/status/1234567891
+
+## 🛠️ Dev Tips
+- *Codex architecture deep dive* — how the sandboxed agent environment works under the hood
+  @OpenAIDevs https://x.com/OpenAIDevs/status/1234567892
+
+## 🇮🇱 Hebrew
+- [Hebrew] *OpenClaw on Android via Termux* — step-by-step guide
+  @taltimes2 https://x.com/taltimes2/status/1234567893
+
+## 🤔 Deep
+- *"Creative psychosis" from AI building* — the addictive loop of shipping with agents
+  @GeoffreyHuntley https://x.com/GeoffreyHuntley/status/1234567894
+
+Do NOT include any preamble, sign-off, or commentary outside the sections."""
