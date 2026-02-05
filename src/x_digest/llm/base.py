@@ -6,7 +6,7 @@ Provides a mock implementation for testing and development.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from dataclasses import dataclass
 
 from ..errors import LLMError, ErrorCode
@@ -16,14 +16,15 @@ class LLMProvider(ABC):
     """Base class for all LLM providers."""
     
     @abstractmethod
-    def generate(self, prompt: str, system: str = "", images: List[bytes] = None) -> str:
+    def generate(self, prompt: str, system: str = "", images: List[Union[bytes, Dict[str, Any]]] = None) -> str:
         """
         Generate text from prompt, optionally with images.
         
         Args:
             prompt: The main prompt text
             system: System/instruction prompt (if supported)
-            images: List of image data as bytes (for multimodal)
+            images: List of image data — either raw bytes or
+                    Gemini inline_data dicts {"inline_data": {"mime_type": ..., "data": ...}}
             
         Returns:
             Generated text response
@@ -52,7 +53,7 @@ class LLMCall:
     """Record of an LLM call for testing/debugging."""
     prompt: str
     system: str
-    images: Optional[List[bytes]]
+    images: Optional[List[Union[bytes, Dict[str, Any]]]]
     response: str
 
 
@@ -75,7 +76,7 @@ class MockLLMProvider(LLMProvider):
         self.error = error
         self.calls: List[LLMCall] = []
     
-    def generate(self, prompt: str, system: str = "", images: List[bytes] = None) -> str:
+    def generate(self, prompt: str, system: str = "", images: List[Union[bytes, Dict[str, Any]]] = None) -> str:
         """Generate mock response and track call."""
         call = LLMCall(
             prompt=prompt,

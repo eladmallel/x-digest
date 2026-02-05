@@ -8,7 +8,7 @@ and response parsing.
 
 import requests
 import base64
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 
 from .base import LLMProvider
 from ..errors import LLMError, ErrorCode
@@ -29,14 +29,14 @@ class GeminiProvider(LLMProvider):
         self.model = model
         self.base_url = "https://generativelanguage.googleapis.com/v1beta"
     
-    def generate(self, prompt: str, system: str = "", images: List[bytes] = None) -> str:
+    def generate(self, prompt: str, system: str = "", images: List[Union[bytes, Dict[str, Any]]] = None) -> str:
         """
         Generate text using Gemini API.
         
         Args:
             prompt: Main prompt text
             system: System instruction (applied as first message)
-            images: List of image data as bytes
+            images: List of image data — raw bytes or inline_data dicts
             
         Returns:
             Generated text response
@@ -88,7 +88,7 @@ class GeminiProvider(LLMProvider):
         """
         return len(text) // 4
     
-    def _build_payload(self, prompt: str, system: str, images: List[bytes]) -> Dict[str, Any]:
+    def _build_payload(self, prompt: str, system: str, images: List[Union[bytes, Dict[str, Any]]]) -> Dict[str, Any]:
         """Build Gemini API request payload."""
         contents = []
         
@@ -103,14 +103,19 @@ class GeminiProvider(LLMProvider):
         parts = [{"text": prompt}]
         
         # Add images if provided
-        for img_bytes in images:
-            img_base64 = base64.b64encode(img_bytes).decode('utf-8')
-            parts.append({
-                "inline_data": {
-                    "mime_type": "image/jpeg",  # Default to JPEG
-                    "data": img_base64
-                }
-            })
+        for img in images:
+            if isinstance(img, dict):
+                # Already in Gemini inline_data format from fetch_and_encode
+                parts.append(img)
+            else:
+                # Raw bytes — encode to base64
+                img_base64 = base64.b64encode(img).decode('utf-8')
+                parts.append({
+                    "inline_data": {
+                        "mime_type": "image/jpeg",
+                        "data": img_base64
+                    }
+                })
         
         contents.append({
             "role": "user",
