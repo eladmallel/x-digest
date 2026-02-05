@@ -1,0 +1,74 @@
+Metadata-Version: 2.4
+Name: x-digest
+Version: 0.1.0
+Summary: Twitter list digest pipeline that transforms curated feeds into concise, LLM-generated summaries
+Author-email: Elad Mallel <elad@eladmallel.com>
+License: MIT
+Project-URL: Homepage, https://github.com/eladmallel/x-digest
+Project-URL: Repository, https://github.com/eladmallel/x-digest
+Project-URL: Issues, https://github.com/eladmallel/x-digest/issues
+Keywords: twitter,digest,llm,gemini,whatsapp,telegram
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Communications
+Classifier: Topic :: Internet :: WWW/HTTP
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: requests<3,>=2.31.0
+Requires-Dist: python-dotenv<2,>=1.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
+Requires-Dist: pytest-mock>=3.10; extra == "dev"
+Dynamic: license-file
+
+# X Digest
+
+Secure X/Twitter digest pipeline that isolates untrusted tweet content from the main Claude agent.
+
+## Key Security Properties
+
+- Claude NEVER sees raw tweet content
+- Untrusted content processed by sandboxed external LLM (no tools, no file access)
+- Even if external LLM is jailbroken, it can only output text — no capabilities
+
+## Architecture
+
+```
+bird CLI → Raw JSON → External LLM → WhatsApp
+              ↓
+         (in memory only)
+```
+
+## Setup
+
+See [docs/DESIGN.md](docs/DESIGN.md) for full design doc.
+
+## Quick Start
+
+```bash
+# Install deps
+cd scripts && uv venv .venv && uv pip install requests python-dotenv
+
+# Set up environment
+cp .env.example .env
+# Edit .env with your API key and recipient
+
+# Copy and edit config
+cp config/x-digest-config.example.json config/x-digest-config.json
+# Edit config with your lists and schedules
+
+# Run digest
+python3 scripts/x-digest.py --list your-list --dry-run
+```
+
+## License
+
+MIT

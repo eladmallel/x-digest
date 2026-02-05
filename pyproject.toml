@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "x-digest"
+version = "0.1.0"
+description = "Twitter list digest pipeline that transforms curated feeds into concise, LLM-generated summaries"
+requires-python = ">=3.11"
+authors = [
+    {name = "Elad Mallel", email = "elad@eladmallel.com"},
+]
+license = {text = "MIT"}
+readme = "README.md"
+keywords = ["twitter", "digest", "llm", "gemini", "whatsapp", "telegram"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Communications",
+    "Topic :: Internet :: WWW/HTTP",
+]
+
+dependencies = [
+    "requests>=2.31.0,<3",
+    "python-dotenv>=1.0.0,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pytest-mock>=3.10",
+]
+
+[project.scripts]
+x-digest = "x_digest.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/eladmallel/x-digest"
+Repository = "https://github.com/eladmallel/x-digest"
+Issues = "https://github.com/eladmallel/x-digest/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "external: marks tests as requiring external services (deselect with '-m \"not external\"')",
+]

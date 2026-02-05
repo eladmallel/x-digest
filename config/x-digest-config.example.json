@@ -1,5 +1,19 @@
 {
   "version": 1,
+  "lists": {
+    "ai-dev": {
+      "id": "1234567890123456789",
+      "display_name": "AI & Dev",
+      "emoji": "🤖",
+      "enabled": true
+    },
+    "investing": {
+      "id": "9876543210987654321",
+      "display_name": "Investing",
+      "emoji": "📈",
+      "enabled": true
+    }
+  },
   "defaults": {
     "llm": {
       "provider": "gemini",
@@ -25,27 +39,20 @@
     "whatsapp": {
       "gateway_url": "http://localhost:3420/api/message/send",
       "recipient": "+1234567890"
-    },
-    "telegram": {
-      "bot_token": "YOUR_BOT_TOKEN",
-      "chat_id": "YOUR_CHAT_ID"
-    }
-  },
-  "lists": {
-    "example-list": {
-      "id": "YOUR_LIST_ID",
-      "display_name": "Example List",
-      "emoji": "📋",
-      "sections": ["top", "highlights"],
-      "enabled": true
     }
   },
   "schedules": [
     {
-      "name": "morning-example",
-      "list": "example-list",
+      "name": "morning-ai",
+      "list": "ai-dev",
       "cron": "0 12 * * *",
       "description": "7am EST"
+    },
+    {
+      "name": "evening-ai",
+      "list": "ai-dev", 
+      "cron": "0 0 * * *",
+      "description": "7pm EST"
     }
   ],
   "retry": {

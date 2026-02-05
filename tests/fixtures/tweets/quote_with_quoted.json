@@ -1,0 +1,44 @@
+[
+  {
+    "id": "2019123973615939780",
+    "text": "This is exactly what we need for real-time applications! 🔥",
+    "createdAt": "Wed Feb 04 19:15:30 +0000 2026",
+    "conversationId": "2019123973615939780",
+    "author": {
+      "username": "realtimedev",
+      "name": "Real-time Developer"
+    },
+    "authorId": "67890",
+    "replyCount": 3,
+    "retweetCount": 8,
+    "likeCount": 25,
+    "quotedTweet": {
+      "id": "2019123973615939775",
+      "text": "Just shipped a new feature in our API that allows real-time streaming of model outputs. The latency improvements are incredible!",
+      "createdAt": "Wed Feb 04 19:00:43 +0000 2026",
+      "conversationId": "2019123973615939775",
+      "author": {
+        "username": "devlead",
+        "name": "Dev Lead"
+      },
+      "authorId": "12345",
+      "replyCount": 8,
+      "retweetCount": 15,
+      "likeCount": 42
+    }
+  },
+  {
+    "id": "2019123973615939775",
+    "text": "Just shipped a new feature in our API that allows real-time streaming of model outputs. The latency improvements are incredible!",
+    "createdAt": "Wed Feb 04 19:00:43 +0000 2026",
+    "conversationId": "2019123973615939775",
+    "author": {
+      "username": "devlead",
+      "name": "Dev Lead"
+    },
+    "authorId": "12345",
+    "replyCount": 8,
+    "retweetCount": 15,
+    "likeCount": 42
+  }
+]
