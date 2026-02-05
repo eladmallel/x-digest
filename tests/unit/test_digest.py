@@ -146,7 +146,7 @@ def test_build_system_prompt_empty_sections_uses_builtin():
     assert "Twitter digest curator" in prompt
     # Should use built-in default sections
     assert "🔥 Top" in prompt
-    assert "🛠️ Dev Tips" in prompt
+    assert "🛠️ Tools & Tips" in prompt
 
 
 def test_generate_digest_empty_tweets():

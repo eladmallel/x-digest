@@ -1,27 +1,25 @@
 {
   "version": 1,
   "lists": {
-    "ai-dev": {
-      "id": "1234567890123456789",
-      "display_name": "AI & Dev",
+    "tech-news": {
+      "id": "YOUR_LIST_ID_HERE",
+      "display_name": "Tech News",
       "emoji": "🤖",
       "sections": [
         {"key": "top", "emoji": "🔥", "name": "Top", "description": "3-5 highest-signal items. Major launches, breaking news, viral takes."},
-        {"key": "dev_tips", "emoji": "🛠️", "name": "Dev Tips", "description": "Tools, techniques, code tips, architecture insights, tutorials."},
-        {"key": "hebrew", "emoji": "🇮🇱", "name": "Hebrew", "description": "Hebrew-language tweets. Translate to English, keep [Hebrew] tag."},
-        {"key": "deep", "emoji": "🤔", "name": "Deep", "description": "Thought-provoking takes, essays, philosophical observations."}
+        {"key": "tools", "emoji": "🛠️", "name": "Tools & Tips", "description": "Useful tools, techniques, tutorials, and practical advice."},
+        {"key": "deep", "emoji": "🤔", "name": "Deep Dives", "description": "Thought-provoking essays, analyses, and long-form content."}
       ],
       "enabled": true
     },
-    "investing": {
-      "id": "9876543210987654321",
-      "display_name": "Investing",
+    "finance": {
+      "id": "YOUR_OTHER_LIST_ID_HERE",
+      "display_name": "Finance & Markets",
       "emoji": "📈",
       "sections": [
-        {"key": "top", "emoji": "🔥", "name": "Top", "description": "3-5 highest-signal items. Major launches, breaking news, viral takes."},
-        {"key": "business", "emoji": "💼", "name": "Business/Investing", "description": "Business insights, investing ideas, market analysis, company strategy."},
-        {"key": "israel_hebrew", "emoji": "🇮🇱", "name": "Israel/Hebrew", "description": "Hebrew-language and Israel-related tweets. Translate Hebrew to English, keep [Hebrew] tag."},
-        {"key": "geopolitics", "emoji": "🌍", "name": "Geopolitics", "description": "Geopolitical analysis, macro trends, international affairs."}
+        {"key": "top", "emoji": "🔥", "name": "Top", "description": "3-5 highest-signal items. Breaking market news, major announcements."},
+        {"key": "analysis", "emoji": "📊", "name": "Analysis", "description": "Market analysis, investment insights, company deep dives."},
+        {"key": "macro", "emoji": "🌍", "name": "Macro", "description": "Economic trends, geopolitics, policy changes affecting markets."}
       ],
       "enabled": true
     }
@@ -31,7 +29,7 @@
       "provider": "gemini",
       "model": "gemini-2.0-flash"
     },
-    "timezone": "America/New_York",
+    "timezone": "UTC",
     "token_limits": {
       "max_input_tokens": 100000,
       "max_output_tokens": 4000,
@@ -54,16 +52,16 @@
   },
   "schedules": [
     {
-      "name": "morning-ai",
-      "list": "ai-dev",
+      "name": "morning",
+      "list": "tech-news",
       "cron": "0 12 * * *",
-      "description": "7am EST"
+      "description": "Daily morning digest (12:00 UTC)"
     },
     {
-      "name": "evening-ai",
-      "list": "ai-dev",
+      "name": "evening",
+      "list": "tech-news",
       "cron": "0 0 * * *",
-      "description": "7pm EST"
+      "description": "Daily evening digest (00:00 UTC)"
     }
   ],
   "retry": {

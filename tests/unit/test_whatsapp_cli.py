@@ -165,7 +165,7 @@ class TestWhatsAppSendSuccess:
         return WhatsAppProvider(
             cli_path="/fake/openclaw.mjs",
             node_path="/fake/node",
-            recipient="+972544594363",
+            recipient="+15551234567",
         )
 
     @patch("subprocess.run")
@@ -187,7 +187,7 @@ class TestWhatsAppSendSuccess:
         )
 
         provider = self._make_provider()
-        msg_id = provider.send("+972544594363", "Test message")
+        msg_id = provider.send("+15551234567", "Test message")
         assert msg_id == "3EB004517B7975988CA6BA"
 
     @patch("subprocess.run")
@@ -200,7 +200,7 @@ class TestWhatsAppSendSuccess:
         )
 
         provider = self._make_provider()
-        msg_id = provider.send("+972544594363", "Test")
+        msg_id = provider.send("+15551234567", "Test")
         assert msg_id == "unknown"
 
     @patch("subprocess.run")
@@ -213,7 +213,7 @@ class TestWhatsAppSendSuccess:
         )
 
         provider = self._make_provider()
-        msg_id = provider.send("+972544594363", "Test")
+        msg_id = provider.send("+15551234567", "Test")
         assert msg_id == "unknown"
 
     @patch("os.path.isfile", return_value=True)
@@ -227,7 +227,7 @@ class TestWhatsAppSendSuccess:
         )
 
         provider = self._make_provider()
-        provider.send("+972544594363", "Hello world")
+        provider.send("+15551234567", "Hello world")
 
         mock_run.assert_called_once()
         cmd = mock_run.call_args[0][0]
@@ -237,7 +237,7 @@ class TestWhatsAppSendSuccess:
         assert cmd[2:5] == ["message", "send", "--channel"]
         assert "whatsapp" in cmd
         assert "--target" in cmd
-        assert "+972544594363" in cmd
+        assert "+15551234567" in cmd
         assert "--message" in cmd
         assert "Hello world" in cmd
         assert "--json" in cmd
@@ -252,7 +252,7 @@ class TestWhatsAppSendSuccess:
         )
 
         provider = self._make_provider()
-        provider.send("+972544594363", "Hi")
+        provider.send("+15551234567", "Hi")
 
         kwargs = mock_run.call_args[1]
         assert kwargs["capture_output"] is True
@@ -270,7 +270,7 @@ class TestWhatsAppSendErrors:
         return WhatsAppProvider(
             cli_path="/fake/openclaw.mjs",
             node_path="/fake/node",
-            recipient="+972544594363",
+            recipient="+15551234567",
         )
 
     @patch("subprocess.run")
@@ -284,7 +284,7 @@ class TestWhatsAppSendErrors:
 
         provider = self._make_provider()
         with pytest.raises(DeliveryError) as exc:
-            provider.send("+972544594363", "Test")
+            provider.send("+15551234567", "Test")
         assert exc.value.code == ErrorCode.WHATSAPP_RECIPIENT_NOT_FOUND
 
     @patch("subprocess.run")
@@ -298,7 +298,7 @@ class TestWhatsAppSendErrors:
 
         provider = self._make_provider()
         with pytest.raises(DeliveryError) as exc:
-            provider.send("+972544594363", "Test")
+            provider.send("+15551234567", "Test")
         assert exc.value.code == ErrorCode.DELIVERY_RATE_LIMITED
 
     @patch("subprocess.run")
@@ -312,7 +312,7 @@ class TestWhatsAppSendErrors:
 
         provider = self._make_provider()
         with pytest.raises(DeliveryError) as exc:
-            provider.send("+972544594363", "Test")
+            provider.send("+15551234567", "Test")
         assert exc.value.code == ErrorCode.WHATSAPP_SESSION_EXPIRED
 
     @patch("subprocess.run")
@@ -326,7 +326,7 @@ class TestWhatsAppSendErrors:
 
         provider = self._make_provider()
         with pytest.raises(DeliveryError) as exc:
-            provider.send("+972544594363", "Test")
+            provider.send("+15551234567", "Test")
         assert exc.value.code == ErrorCode.WHATSAPP_GATEWAY_UNAVAILABLE
 
     @patch("subprocess.run")
@@ -340,7 +340,7 @@ class TestWhatsAppSendErrors:
 
         provider = self._make_provider()
         with pytest.raises(DeliveryError) as exc:
-            provider.send("+972544594363", "Test")
+            provider.send("+15551234567", "Test")
         assert exc.value.code == ErrorCode.DELIVERY_SEND_FAILED
         assert "Something unexpected" in str(exc.value)
 
@@ -355,7 +355,7 @@ class TestWhatsAppSendErrors:
 
         provider = self._make_provider()
         with pytest.raises(DeliveryError) as exc:
-            provider.send("+972544594363", "Test")
+            provider.send("+15551234567", "Test")
         assert "Some error in stdout" in str(exc.value)
 
     @patch("subprocess.run")
@@ -369,7 +369,7 @@ class TestWhatsAppSendErrors:
 
         provider = self._make_provider()
         with pytest.raises(DeliveryError) as exc:
-            provider.send("+972544594363", "Test")
+            provider.send("+15551234567", "Test")
         assert "Unknown CLI error" in str(exc.value)
 
     @patch("subprocess.run")
@@ -383,7 +383,7 @@ class TestWhatsAppSendErrors:
 
         provider = self._make_provider()
         with pytest.raises(DeliveryError) as exc:
-            provider.send("+972544594363", "Test")
+            provider.send("+15551234567", "Test")
         assert exc.value.code == ErrorCode.DELIVERY_SEND_FAILED
         assert "empty output" in str(exc.value)
 
@@ -392,7 +392,7 @@ class TestWhatsAppSendErrors:
         """Handles subprocess timeout."""
         provider = self._make_provider()
         with pytest.raises(DeliveryError) as exc:
-            provider.send("+972544594363", "Test")
+            provider.send("+15551234567", "Test")
         assert exc.value.code == ErrorCode.DELIVERY_NETWORK_ERROR
         assert "timed out" in str(exc.value)
 
@@ -401,7 +401,7 @@ class TestWhatsAppSendErrors:
         """Handles missing binary."""
         provider = self._make_provider()
         with pytest.raises(DeliveryError) as exc:
-            provider.send("+972544594363", "Test")
+            provider.send("+15551234567", "Test")
         assert exc.value.code == ErrorCode.WHATSAPP_GATEWAY_UNAVAILABLE
 
     @patch("subprocess.run", side_effect=OSError("Permission denied"))
@@ -409,7 +409,7 @@ class TestWhatsAppSendErrors:
         """Handles OS-level errors."""
         provider = self._make_provider()
         with pytest.raises(DeliveryError) as exc:
-            provider.send("+972544594363", "Test")
+            provider.send("+15551234567", "Test")
         assert exc.value.code == ErrorCode.DELIVERY_NETWORK_ERROR
         assert "Permission denied" in str(exc.value)
 
@@ -462,12 +462,12 @@ class TestGetProviderWhatsApp:
         config = {
             "provider": "whatsapp",
             "whatsapp": {
-                "recipient": "+972544594363",
+                "recipient": "+15551234567",
             }
         }
         provider = get_provider(config)
         assert isinstance(provider, WhatsAppProvider)
-        assert provider.default_recipient == "+972544594363"
+        assert provider.default_recipient == "+15551234567"
 
     def test_custom_cli_and_node_paths(self):
         """Passes custom CLI/node paths from config."""
