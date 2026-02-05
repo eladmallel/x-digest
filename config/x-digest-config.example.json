@@ -37,7 +37,6 @@
   "delivery": {
     "provider": "whatsapp",
     "whatsapp": {
-      "gateway_url": "http://localhost:3420/api/message/send",
       "recipient": "+1234567890"
     }
   },

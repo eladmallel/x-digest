@@ -86,7 +86,6 @@ def test_get_provider_whatsapp():
     config = {
         "provider": "whatsapp",
         "whatsapp": {
-            "gateway_url": "http://localhost:3420",
             "recipient": "+1234567890"
         }
     }
@@ -185,99 +184,11 @@ def test_send_digest_partial_failure():
     assert len(provider.sends) == 4  # 1 + 2 + 1
 
 
-# WhatsApp provider tests
-
-@patch('x_digest.delivery.whatsapp.requests.post')
-def test_whatsapp_provider_success(mock_post):
-    """WhatsApp provider successful send."""
-    # Mock successful response
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "success": True,
-        "messageId": "whatsapp_msg_123"
-    }
-    mock_post.return_value = mock_response
-    
-    provider = WhatsAppProvider(
-        gateway_url="http://localhost:3420/api/message/send",
-        recipient="+1234567890"
-    )
-    
-    result = provider.send("+1234567890", "Test message")
-    
-    assert result == "whatsapp_msg_123"
-    
-    # Verify request
-    mock_post.assert_called_once()
-    call_args = mock_post.call_args
-    assert call_args[1]["json"] == {
-        "channel": "whatsapp",
-        "to": "+1234567890", 
-        "message": "Test message"
-    }
-
-
-@patch('x_digest.delivery.whatsapp.requests.post')
-def test_whatsapp_provider_gateway_error(mock_post):
-    """WhatsApp provider handles gateway errors."""
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "success": False,
-        "error": "RECIPIENT_NOT_FOUND"
-    }
-    mock_post.return_value = mock_response
-    
-    provider = WhatsAppProvider("http://localhost:3420", "+1234567890")
-    
-    with pytest.raises(DeliveryError) as exc:
-        provider.send("+1234567890", "Test")
-    
-    assert exc.value.code == ErrorCode.WHATSAPP_RECIPIENT_NOT_FOUND
-
-
-@patch('x_digest.delivery.whatsapp.requests.post')
-def test_whatsapp_provider_http_errors(mock_post):
-    """WhatsApp provider maps HTTP errors correctly."""
-    provider = WhatsAppProvider("http://localhost:3420", "+1234567890")
-    
-    # 401 Unauthorized
-    mock_post.return_value.status_code = 401
-    with pytest.raises(DeliveryError) as exc:
-        provider.send("+1", "Test")
-    assert exc.value.code == ErrorCode.DELIVERY_AUTH_FAILED
-    
-    # 429 Rate Limited
-    mock_post.return_value.status_code = 429
-    with pytest.raises(DeliveryError) as exc:
-        provider.send("+1", "Test")
-    assert exc.value.code == ErrorCode.DELIVERY_RATE_LIMITED
-    
-    # 503 Service Unavailable
-    mock_post.return_value.status_code = 503
-    with pytest.raises(DeliveryError) as exc:
-        provider.send("+1", "Test")
-    assert exc.value.code == ErrorCode.WHATSAPP_GATEWAY_UNAVAILABLE
-
-
-@patch('x_digest.delivery.whatsapp.requests.post')
-def test_whatsapp_provider_timeout(mock_post):
-    """WhatsApp provider handles timeout."""
-    import requests
-    mock_post.side_effect = requests.Timeout()
-    
-    provider = WhatsAppProvider("http://localhost:3420", "+1234567890")
-    
-    with pytest.raises(DeliveryError) as exc:
-        provider.send("+1", "Test")
-    assert exc.value.code == ErrorCode.DELIVERY_NETWORK_ERROR
-    assert "timeout" in str(exc.value).lower()
-
+# WhatsApp provider tests (see test_whatsapp_cli.py for comprehensive coverage)
 
 def test_whatsapp_provider_message_too_long():
     """WhatsApp provider rejects messages that are too long."""
-    provider = WhatsAppProvider("http://localhost:3420", "+1234567890")
+    provider = WhatsAppProvider(recipient="+1234567890")
     long_message = "x" * 5000  # Over 4000 char limit
     
     with pytest.raises(DeliveryError) as exc:
@@ -287,7 +198,7 @@ def test_whatsapp_provider_message_too_long():
 
 def test_whatsapp_provider_no_recipient():
     """WhatsApp provider requires recipient."""
-    provider = WhatsAppProvider("http://localhost:3420")  # No default recipient
+    provider = WhatsAppProvider()  # No default recipient
     
     with pytest.raises(DeliveryError) as exc:
         provider.send("", "Test")  # Empty recipient

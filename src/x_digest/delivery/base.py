@@ -141,8 +141,10 @@ def get_provider(config: Dict[str, Any]) -> DeliveryProvider:
         from .whatsapp import WhatsAppProvider
         whatsapp_config = config.get("whatsapp", {})
         return WhatsAppProvider(
-            gateway_url=whatsapp_config.get("gateway_url", "http://localhost:3420/api/message/send"),
-            recipient=whatsapp_config.get("recipient")
+            cli_path=whatsapp_config.get("cli_path"),
+            node_path=whatsapp_config.get("node_path"),
+            recipient=whatsapp_config.get("recipient"),
+            timeout=whatsapp_config.get("timeout", 30),
         )
     
     elif provider_type == "telegram":
