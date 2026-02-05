@@ -32,8 +32,15 @@ bird CLI → Python script → Gemini API → WhatsApp/Telegram
 ```bash
 git clone https://github.com/eladmallel/x-digest.git
 cd x-digest
+
+# Using uv (recommended)
+uv venv && uv pip install -e ".[dev]"
+
+# Or with pip
 pip install -e ".[dev]"
 ```
+
+> **What's `.[dev]`?** The `.` installs the package from the current directory. `[dev]` adds optional development dependencies (pytest, coverage tools) defined in `pyproject.toml`. If you just want to run digests without running tests, `pip install -e .` is enough.
 
 ### 2. Set up bird CLI
 
