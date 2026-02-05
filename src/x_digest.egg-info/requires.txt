@@ -1,7 +1,0 @@
-requests<3,>=2.31.0
-python-dotenv<2,>=1.0.0
-
-[dev]
-pytest>=7.0
-pytest-cov>=4.0
-pytest-mock>=3.10

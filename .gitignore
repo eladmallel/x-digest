@@ -15,3 +15,4 @@ data/
 
 # Local config (use example as template)
 config/x-digest-config.json
+src/x_digest.egg-info/

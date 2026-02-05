@@ -1,2 +1,0 @@
-[console_scripts]
-x-digest = x_digest.cli:main
