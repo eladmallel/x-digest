@@ -64,15 +64,21 @@ def generate_digest(
                 from .images import fetch_and_encode
                 encoded = fetch_and_encode(image_url)
                 image_data.append(encoded)
-            except Exception:
+            except Exception as img_err:
                 # Skip failed images rather than failing whole digest
+                import logging
+                logging.getLogger(__name__).warning("Failed to fetch image %s: %s", image_url, img_err)
                 continue
         
         digest = llm_provider.generate(payload, system=system_prompt, images=image_data)
         return digest.strip()
         
-    except LLMError:
-        # Fallback to sparse format if LLM fails
+    except LLMError as e:
+        # Log the error and fallback to sparse format
+        import logging
+        logging.getLogger(__name__).error("LLM digest generation failed: %s (code: %s). Falling back to sparse format.", 
+                                          e.message if hasattr(e, 'message') else str(e),
+                                          e.code if hasattr(e, 'code') else 'unknown')
         return format_sparse_digest(tweets, config)
 
 

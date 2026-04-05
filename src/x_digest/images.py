@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 # Image handling constants
 TOKENS_PER_IMAGE = 1900  # Tested with Gemini 2.0 Flash
 MAX_IMAGE_TOKENS = 30000  # Token budget for images
-MAX_IMAGES = MAX_IMAGE_TOKENS // TOKENS_PER_IMAGE  # ~15
+MAX_IMAGES = 0  # Disabled to avoid Gemini rate limits (text-only digest)
 MAX_IMAGES_PER_TWEET = 3  # Ensure variety across tweets
 
 

@@ -367,6 +367,13 @@ def run_pipeline(
     print(f"   Selected: {len(selected_images)} images for multimodal digest")
 
     # --- Step 6: Generate digest ---
+    # Add delay before digest generation to avoid rate limits after pre-summarization
+    if pre_summarized_count > 0:
+        import time as _time_module
+        rate_limit_delay = config.get("defaults", {}).get("pre_summarization", {}).get("rate_limit_delay", 1.0)
+        if rate_limit_delay > 0:
+            _time_module.sleep(rate_limit_delay)
+    
     print("\n🤖 Generating digest...")
     logger.info("Generating digest")
     digest_start = _time.time()

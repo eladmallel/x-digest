@@ -132,6 +132,8 @@ def presummary_tweets(
     This function handles failures gracefully - if LLM fails for a tweet,
     it returns None for that summary but continues processing others.
     """
+    import time
+    
     if config is None:
         config = _get_default_presummary_config()
     
@@ -141,24 +143,36 @@ def presummary_tweets(
         # Return all tweets with None summaries
         return [(tweet, None) for tweet in tweets]
     
+    # Rate limit delay (seconds) between API calls to avoid Gemini rate limits
+    rate_limit_delay = presummary_config.get("rate_limit_delay", 1.0)
+    
     # Reconstruct threads first
     threads = reconstruct_threads(tweets)
     
     results = []
+    llm_calls_made = 0
     
     for conv_id, thread in threads.items():
         if len(thread) == 1:
             # Single tweet - check if it needs presummary
             tweet = thread[0]
             if should_presummary(tweet, config):
+                # Rate limit: wait before each LLM call (except first)
+                if llm_calls_made > 0 and rate_limit_delay > 0:
+                    time.sleep(rate_limit_delay)
                 summary = _summarize_single_tweet(tweet, llm_provider)
+                llm_calls_made += 1
             else:
                 summary = None
             results.append((tweet, summary))
         else:
             # Multi-tweet thread - pass the whole thread to should_presummary
             if should_presummary(thread, config):
+                # Rate limit: wait before each LLM call (except first)
+                if llm_calls_made > 0 and rate_limit_delay > 0:
+                    time.sleep(rate_limit_delay)
                 thread_summary = _summarize_thread(thread, llm_provider)
+                llm_calls_made += 1
                 # Apply the same summary to all tweets in thread  
                 for tweet in thread:
                     results.append((tweet, thread_summary))
